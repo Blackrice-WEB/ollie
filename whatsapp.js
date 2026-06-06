@@ -2,7 +2,8 @@ const {
   default: makeWASocket, 
   useMultiFileAuthState, 
   DisconnectReason, 
-  delay
+  delay,
+  Browsers
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const path = require('path');
@@ -37,7 +38,7 @@ async function init(socketIo) {
     console.log('WhatsApp credentials loaded from Supabase. Auto-connecting...');
     connectWhatsApp();
   } else {
-    console.log('No WhatsApp session found in database. Initializing default QR code connection...');
+    console.log('No WhatsApp session found in database. Initializing default connection...');
     connectWhatsApp(); // Start connection immediately to generate QR codes!
   }
 }
@@ -103,12 +104,13 @@ async function connectWhatsApp(phoneNumber = null) {
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
-    // Knight Bot MD Formula: Use 'Chrome (Linux)' as the browser signature for pairing code stability
+    // Knight Bot MD Formula: Use Browsers.ubuntu('Chrome') for pairing code stability
     sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
       logger: logger,
-      browser: ['Chrome (Linux)', '', ''] 
+      browser: Browsers.ubuntu('Chrome'), // Crucial fix for triggering phone prompt!
+      defaultQueryTimeoutMs: undefined // Prevents cloud timeouts
     });
 
     sock.ev.on('creds.update', async () => {
@@ -119,8 +121,8 @@ async function connectWhatsApp(phoneNumber = null) {
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // Handle QR Code Generation
-      if (qr && !phoneNumber) {
+      // Handle QR Code Generation (Only if NOT requesting a pairing code)
+      if (qr && !currentPhoneNumber) {
         try {
           const qrImage = await QRCode.toDataURL(qr);
           qrCodeImage = qrImage;
@@ -179,7 +181,10 @@ async function connectWhatsApp(phoneNumber = null) {
       
       try {
         const code = await sock.requestPairingCode(sanitizedPhone);
-        pairingCode = code;
+        
+        // Format code as ABCD-EFGH for visual ease
+        const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
+        pairingCode = formattedCode;
         qrCodeImage = null; // Clear QR code since we are using pairing code
         console.log(`Generated pairing code: ${pairingCode}`);
         
