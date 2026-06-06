@@ -164,7 +164,7 @@
       <!-- LEFT COLUMN -->
       <div class="space-y-6 lg:col-span-1">
         
-        <!-- CONNECT WHATSAPP (QR & PAIR CODE PANEL) -->
+        <!-- CONNECT WHATSAPP -->
         <section id="section-connect" class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-wa-green"></div>
           <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
@@ -173,7 +173,7 @@
           
           <div id="connection-card-content" class="space-y-4">
             
-            <!-- Connection Tabs (Scan QR vs Pair Code) -->
+            <!-- Tabs -->
             <div class="flex border-b border-wa-border" id="connect-tabs">
               <button onclick="switchConnectTab('qr')" id="tab-btn-qr" class="flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all">
                 <i class="fa-solid fa-qrcode mr-1"></i> Scan QR Code
@@ -183,7 +183,7 @@
               </button>
             </div>
 
-            <!-- Tab 1: QR Code Scanner -->
+            <!-- Tab 1: QR Code -->
             <div id="connect-tab-qr" class="space-y-3 text-center">
               <p class="text-xs text-gray-400 leading-relaxed text-left">
                 Open WhatsApp on your phone -> Tap **Settings** -> **Linked Devices** -> **Link a Device**, and scan this code:
@@ -191,7 +191,6 @@
               <div class="flex justify-center my-4">
                 <div class="p-4 bg-white rounded-2xl shadow-xl relative inline-block">
                   <img id="qr-code-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80" alt="QR Code" class="w-40 h-40 object-contain blur-sm">
-                  <!-- Blurred Placeholder overlay before QR loads -->
                   <div id="qr-loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-2xl p-2 text-xs text-wa-green font-bold font-mono">
                     <i class="fa-solid fa-spinner animate-spin text-lg mb-2"></i>
                     <span>Generating QR...</span>
@@ -201,7 +200,7 @@
               <p class="text-[10px] text-gray-500">QR code refreshes automatically for security.</p>
             </div>
 
-            <!-- Tab 2: Pairing Code Form -->
+            <!-- Tab 2: Pairing Code -->
             <div id="connect-tab-pair" class="hidden space-y-3">
               <p class="text-xs text-gray-400 leading-relaxed">
                 Enter Oliver's phone number with country code. It requests an 8-character pairing code you enter on your phone.
@@ -220,7 +219,7 @@
                 <i class="fa-solid fa-key"></i> Get Pairing Code
               </button>
 
-              <!-- Pairing Code Display -->
+              <!-- Pairing Code Box -->
               <div id="pairing-code-box" class="hidden space-y-3 bg-wa-bg p-4 rounded-xl border border-wa-border text-center">
                 <div class="flex items-center justify-between text-[10px]">
                   <span class="font-extrabold text-amber-400 flex items-center gap-1 uppercase tracking-wide">
@@ -228,11 +227,25 @@
                   </span>
                   <span class="text-xs font-mono text-gray-400" id="pairing-phone-label"></span>
                 </div>
-                <div class="flex justify-center my-2">
-                  <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-wa-green bg-wa-cardbg border border-wa-border px-5 py-2.5 rounded-xl select-all shadow-inner">
+                
+                <div class="flex items-center justify-center gap-2 my-2 bg-wa-cardbg border border-wa-border p-3 rounded-xl">
+                  <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-wa-green select-all">
                     --------
                   </div>
+                  <button onclick="copyPairingCode()" class="p-2 bg-wa-green/10 hover:bg-wa-green text-wa-green hover:text-wa-chatbg rounded-lg text-xs transition-all border border-wa-green/20" title="Copy Code">
+                    <i id="copy-btn-icon" class="fa-regular fa-copy"></i>
+                  </button>
                 </div>
+
+                <div class="text-[10px] text-gray-400 text-left space-y-1 bg-wa-cardbg/50 p-2.5 rounded border border-wa-border">
+                  <span class="font-bold text-white block mb-0.5"><i class="fa-solid fa-circle-info text-wa-green"></i> How to enter on your phone:</span>
+                  1. Open WhatsApp on your phone.<br>
+                  2. Go to <strong class="text-white">Settings</strong> -> <strong class="text-white">Linked Devices</strong>.<br>
+                  3. Tap <strong class="text-white">Link a Device</strong>.<br>
+                  4. Select <strong class="text-white">Link with phone number instead</strong> at the bottom.<br>
+                  5. Enter this 8-character code.
+                </div>
+
                 <button onclick="cancelPairing()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-[10px] py-2 rounded-lg border border-red-500/20 transition-all">
                   Cancel / Reset Code
                 </button>
@@ -375,7 +388,6 @@
           </h2>
           
           <div class="space-y-4">
-            <!-- Add Blocked Form -->
             <form onsubmit="blockContactForm(event)" class="space-y-2 bg-wa-bg p-3 rounded-xl border border-wa-border">
               <span class="text-[9px] uppercase tracking-wider font-bold text-gray-400">Add Block Rule</span>
               <div class="grid grid-cols-2 gap-2">
@@ -389,7 +401,7 @@
                   <input type="checkbox" id="block-isgroup" class="rounded bg-wa-cardbg border-wa-border text-red-500 focus:ring-0">
                   Is Group?
                 </label>
-                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                <button type="submit" class="bg-red-500 hover:bg-red-650 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
                   <i class="fa-solid fa-plus"></i> Block
                 </button>
               </div>
@@ -416,7 +428,7 @@
               <span class="w-2.5 h-2.5 bg-wa-green rounded-full animate-ping"></span>
               Ollie Cognitive Brain Status
             </h3>
-            <div class="text-[9px] text-gray-500 font-mono">Real-time LLama-3.3 thought logs</div>
+            <div class="text-[9px] text-gray-505 font-mono">Real-time LLama-3.3 thought logs</div>
           </div>
 
           <div id="ollie-brain-logs" class="bg-wa-bg rounded-xl p-4 border border-wa-border font-mono text-[11px] text-wa-green/90 h-40 overflow-y-auto custom-scrollbar space-y-1.5 shadow-inner">
@@ -449,7 +461,7 @@
             
             <div class="flex items-center gap-2 max-w-xs w-full">
               <div class="relative w-full">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-500 text-xs">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-505 text-xs">
                   <i class="fa-solid fa-magnifying-glass"></i>
                 </span>
                 <input type="text" id="message-search" oninput="filterMessages()" placeholder="Search sender or text..." 
@@ -550,7 +562,7 @@
         updateStatusDisplay(data);
       });
 
-      // Listen to the raw QR code base64 image from the backend (Knight Bot MD Formula)
+      // Listen to the raw QR code base64 image from the backend
       socket.on('qr_code', (data) => {
         if (data.qr) {
           const qrImg = document.getElementById('qr-code-img');
@@ -675,7 +687,7 @@
           <h4 class="text-xs font-bold text-white">${title}</h4>
           <p class="text-[11px] text-gray-300 mt-0.5">${text}</p>
         </div>
-        <button class="text-gray-505 hover:text-gray-300 transition-colors text-xs" onclick="this.parentElement.remove()">
+        <button class="text-gray-505 hover:text-gray-305 transition-colors text-xs" onclick="this.parentElement.remove()">
           <i class="fa-solid fa-xmark"></i>
         </button>
       `;
@@ -718,7 +730,6 @@
       } else {
         cardConnected.classList.add('hidden');
         
-        // Show current tab option depending on status
         if (data.status === 'pairing') {
           headerStatus.className = "flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-full text-sm text-amber-400";
           headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Pairing...</span>`;
@@ -750,7 +761,6 @@
           headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>`;
           
           cardDisconnected.classList.remove('hidden');
-          // Start showing QR code since we auto-connect to show QR!
           document.getElementById('connect-tab-qr').classList.remove('hidden');
         }
       }
@@ -845,6 +855,25 @@
       }
     }
 
+    // Copy Pairing Code to Clipboard
+    function copyPairingCode() {
+      const codeText = document.getElementById('pairing-code-display').innerText.trim();
+      if (codeText === '--------') return;
+
+      navigator.clipboard.writeText(codeText).then(() => {
+        showToast('Copied!', 'Pairing code copied to clipboard.', 'success');
+        
+        // Visual button feedback
+        const copyIcon = document.getElementById('copy-btn-icon');
+        copyIcon.className = "fa-solid fa-check";
+        setTimeout(() => {
+          copyIcon.className = "fa-regular fa-copy";
+        }, 2000);
+      }).catch(err => {
+        console.error('Could not copy code:', err);
+      });
+    }
+
     async function fetchMessages() {
       try {
         const res = await fetch('/api/messages');
@@ -871,7 +900,7 @@
 
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-20 text-gray-550 space-y-2">
+          <div class="flex flex-col items-center justify-center py-20 text-gray-500 space-y-2">
             <i class="fa-solid fa-magnifying-glass text-2xl opacity-40"></i>
             <p class="text-xs">No matching messages found.</p>
           </div>
@@ -996,7 +1025,7 @@
       const logDiv = document.createElement('div');
       logDiv.className = 'flex gap-2 items-start leading-relaxed';
       logDiv.innerHTML = `
-        <span class="text-gray-605 shrink-0 select-none">[${formattedTime}]</span>
+        <span class="text-gray-650 shrink-0 select-none">[${formattedTime}]</span>
         <span class="${tagColor} font-bold shrink-0">[${log.step.toUpperCase()}]</span>
         <span class="text-gray-305">${escapeHtml(log.detail)}</span>
       `;
@@ -1026,7 +1055,7 @@
       
       if (meetingAlerts.length === 0) {
         container.innerHTML = `
-          <div class="col-span-2 text-center py-10 text-gray-505 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
+          <div class="col-span-2 text-center py-10 text-gray-550 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
             <i class="fa-regular fa-calendar text-3xl"></i>
             <p class="text-xs">No active meeting alerts. Safe scheduling!</p>
           </div>
@@ -1043,7 +1072,7 @@
                 <span class="text-xs font-bold text-yellow-400 flex items-center gap-1">
                   <i class="fa-solid fa-bell animate-bounce"></i> ${escapeHtml(a.sender)}
                 </span>
-                <span class="text-[10px] text-gray-500">${dateStr}</span>
+                <span class="text-[10px] text-gray-505">${dateStr}</span>
               </div>
               <p class="text-xs text-gray-200 leading-relaxed italic">
                 "${escapeHtml(a.message)}"
@@ -1117,7 +1146,7 @@
 
       if (blockedContacts.length === 0) {
         container.innerHTML = `
-          <p class="text-[11px] text-gray-505 text-center py-4">No blocked contacts yet.</p>
+          <p class="text-[11px] text-gray-500 text-center py-4">No blocked contacts yet.</p>
         `;
         return;
       }
