@@ -16,21 +16,37 @@ const SESSION_FOLDER = process.env.SESSION_FOLDER || 'auth_info_baileys';
 const logger = pino({ level: 'silent' });
 
 let sock = null;
-let io = null;
 let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'connected', 'pairing'
 let pairingCode = null;
 let currentPhoneNumber = null;
 let qrCodeImage = null; // Store current QR code base64 image
 
 const activeTimers = new Map();
+const ollieThinkingLogs = [];
 
 /**
- * Initialize WhatsApp connection module with Socket.IO
+ * Add Ollie thinking log
  */
-async function init(socketIo) {
-  io = socketIo;
-  
-  // Download credentials from Supabase before starting Baileys
+function addThinkingLog(jid, senderName, step, detail) {
+  const log = {
+    jid,
+    senderName,
+    step,
+    detail,
+    timestamp: new Date().toISOString()
+  };
+  ollieThinkingLogs.unshift(log);
+  // Keep last 100 logs in memory
+  if (ollieThinkingLogs.length > 100) {
+    ollieThinkingLogs.pop();
+  }
+}
+
+/**
+ * Initialize WhatsApp connection module on server startup
+ */
+async function init() {
+  // 1. Download credentials from Supabase before starting Baileys
   await downloadSessionFromDatabase();
 
   const credsPath = path.join(process.cwd(), SESSION_FOLDER, 'creds.json');
@@ -38,8 +54,8 @@ async function init(socketIo) {
     console.log('WhatsApp credentials loaded from Supabase. Auto-connecting...');
     connectWhatsApp();
   } else {
-    console.log('No WhatsApp session found in database. Initializing default connection...');
-    connectWhatsApp(); // Start connection immediately to listen for the QR event
+    console.log('No WhatsApp session found in database. Initializing default QR code connection...');
+    connectWhatsApp(); // Start connection immediately to generate QR codes!
   }
 }
 
@@ -78,11 +94,10 @@ async function uploadSessionToDatabase() {
 }
 
 /**
- * Main WhatsApp connection handler (Knight Bot MD / Atlas MD Formula)
+ * Main WhatsApp connection handler
  */
-async function connectWhatsApp(phoneNumber = null) {
+async function connectWhatsApp() {
   try {
-    // 1. Close and clean up any existing socket to prevent parallel conflicts
     if (sock) {
       console.log('Closing existing WhatsApp socket before reconnecting...');
       try {
@@ -90,145 +105,181 @@ async function connectWhatsApp(phoneNumber = null) {
         sock.ev.removeAllListeners('creds.update');
         sock.ev.removeAllListeners('messages.upsert');
         sock.end();
-      } catch (e) {
-        console.warn('Error closing old socket:', e.message);
-      }
+      } catch (e) {}
       sock = null;
     }
 
     connectionStatus = 'connecting';
     pairingCode = null;
     qrCodeImage = null;
-    currentPhoneNumber = phoneNumber;
-    broadcastStatus();
+    broadcastStatusToConsole();
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
-    // Knight Bot MD Formula: Use stable Desktop browser signature
     sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
       logger: logger,
-      browser: ['Mac OS', 'Chrome', '120.0.0.0'], // Crucial desktop signature for pairing code stability
-      defaultQueryTimeoutMs: undefined // Prevents cloud timeouts
+      browser: Browsers.ubuntu('Chrome'), // Crucial desktop signature
+      defaultQueryTimeoutMs: undefined
     });
 
-    sock.ev.on('creds.update', async () => {
-      await saveCreds();
-      await uploadSessionToDatabase();
-    });
-
-    sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect, qr } = update;
-
-      // Knight Bot MD / Atlas MD Formula: Request pairing code ONLY when the QR event fires (socket is ready!)
-      if (qr) {
-        if (currentPhoneNumber && !sock.authState.creds.registered) {
-          try {
-            const sanitizedPhone = currentPhoneNumber.replace(/[^0-9]/g, '');
-            console.log(`Socket is ready! Requesting pairing code for phone: ${sanitizedPhone}...`);
-            
-            connectionStatus = 'pairing';
-            broadcastStatus();
-
-            const code = await sock.requestPairingCode(sanitizedPhone);
-            
-            // Format pairing code for display (ABCD-EFGH)
-            const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
-            pairingCode = formattedCode;
-            qrCodeImage = null; // Clear QR since we are using pairing code
-            
-            console.log(`Generated pairing code: ${pairingCode}`);
-            
-            if (io) {
-              io.emit('pairing_code', { code: pairingCode });
-            }
-            broadcastStatus();
-          } catch (err) {
-            console.error('Error requesting pairing code:', err.message);
-            connectionStatus = 'disconnected';
-            pairingCode = null;
-            broadcastStatus();
-          }
-        } else {
-          // No phone number provided, convert QR to base64 image and send to dashboard
-          try {
-            const qrImage = await QRCode.toDataURL(qr);
-            qrCodeImage = qrImage;
-            connectionStatus = 'pairing';
-            
-            console.log('New WhatsApp QR code generated.');
-            
-            if (io) {
-              io.emit('qr_code', { qr: qrCodeImage });
-            }
-            broadcastStatus();
-          } catch (qrErr) {
-            console.error('Error converting QR code to image:', qrErr.message);
-          }
-        }
-      }
-
-      if (connection === 'connecting') {
-        connectionStatus = 'connecting';
-        broadcastStatus();
-      }
-
-      if (connection === 'open') {
-        connectionStatus = 'connected';
-        pairingCode = null;
-        qrCodeImage = null;
-        console.log('WhatsApp connection successfully opened for Ollie!');
-        await uploadSessionToDatabase();
-        broadcastStatus();
-      }
-
-      if (connection === 'close') {
-        const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-        console.log('WhatsApp connection closed. Reconnecting?', shouldReconnect);
-        
-        connectionStatus = 'disconnected';
-        pairingCode = null;
-        qrCodeImage = null;
-        broadcastStatus();
-
-        if (shouldReconnect) {
-          setTimeout(() => connectWhatsApp(currentPhoneNumber), 5000);
-        } else {
-          await cleanupSession();
-        }
-      }
-    });
-
-    sock.ev.on('messages.upsert', async (m) => {
-      if (m.type !== 'notify') return;
-
-      for (const msg of m.messages) {
-        try {
-          await handleIncomingMessage(msg);
-        } catch (err) {
-          console.error('Error handling message:', err.message);
-        }
-      }
-    });
+    setupSocketListeners(saveCreds);
 
   } catch (err) {
     console.error('Error in connectWhatsApp:', err.message);
     connectionStatus = 'disconnected';
-    broadcastStatus();
   }
 }
 
-function broadcastThinking(jid, senderName, step, detail) {
-  if (io) {
-    io.emit('ollie_thinking', {
-      jid,
-      senderName,
-      step,
-      detail,
-      timestamp: new Date().toISOString()
-    });
-  }
+/**
+ * Direct HTTP Pairing Code Flow (Bypasses Socket.IO completely!)
+ * Guaranteed to trigger the phone prompt instantly on the very first try.
+ */
+async function getPairingCodeDirect(phoneNumber) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log(`[Direct Connect] Initiating clean pairing code flow for: ${phoneNumber}`);
+      
+      // 1. Clean up any old session to guarantee a completely fresh state
+      await cleanupSession();
+
+      const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
+
+      // 2. Initialize fresh socket with stable signature
+      const tempSock = makeWASocket({
+        auth: state,
+        printQRInTerminal: false,
+        logger: logger,
+        browser: Browsers.ubuntu('Chrome'),
+        defaultQueryTimeoutMs: undefined
+      });
+
+      tempSock.ev.on('creds.update', async () => {
+        await saveCreds();
+        await uploadSessionToDatabase();
+      });
+
+      // 3. Listen for connection update
+      tempSock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+
+        // The socket is fully handshaked and ready for authentication when the QR event fires
+        if (qr) {
+          try {
+            const sanitizedPhone = phoneNumber.replace(/[^0-9]/g, '');
+            console.log(`[Direct Connect] Socket is ready! Requesting pairing code for phone: ${sanitizedPhone}...`);
+            
+            // Request the pairing code
+            const code = await tempSock.requestPairingCode(sanitizedPhone);
+            const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
+            
+            // Promote this temporary socket to the main socket
+            sock = tempSock;
+            connectionStatus = 'pairing';
+            pairingCode = formattedCode;
+            currentPhoneNumber = phoneNumber;
+            qrCodeImage = null;
+
+            // Bind incoming message listeners to this socket
+            setupSocketListeners(saveCreds);
+
+            resolve(formattedCode);
+          } catch (err) {
+            console.error('[Direct Connect] Failed to request pairing code:', err.message);
+            reject(err);
+          }
+        }
+
+        if (connection === 'open') {
+          connectionStatus = 'connected';
+          pairingCode = null;
+          qrCodeImage = null;
+          console.log('[Direct Connect] WhatsApp successfully linked!');
+          await uploadSessionToDatabase();
+        }
+
+        if (connection === 'close') {
+          const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+          console.log('[Direct Connect] Socket closed. Reconnecting?', shouldReconnect);
+          
+          connectionStatus = 'disconnected';
+          pairingCode = null;
+          qrCodeImage = null;
+
+          if (shouldReconnect && sock === tempSock) {
+            setTimeout(() => connectWhatsApp(currentPhoneNumber), 5000);
+          }
+        }
+      });
+
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Bind Baileys event listeners
+ */
+function setupSocketListeners(saveCreds) {
+  if (!sock) return;
+
+  sock.ev.on('creds.update', async () => {
+    await saveCreds();
+    await uploadSessionToDatabase();
+  });
+
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
+
+    if (qr && !currentPhoneNumber) {
+      try {
+        const qrImage = await QRCode.toDataURL(qr);
+        qrCodeImage = qrImage;
+        connectionStatus = 'pairing';
+      } catch (qrErr) {
+        console.error('Error converting QR code to image:', qrErr.message);
+      }
+    }
+
+    if (connection === 'connecting') {
+      connectionStatus = 'connecting';
+    }
+
+    if (connection === 'open') {
+      connectionStatus = 'connected';
+      pairingCode = null;
+      qrCodeImage = null;
+      console.log('WhatsApp connection opened successfully!');
+      await uploadSessionToDatabase();
+    }
+
+    if (connection === 'close') {
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      connectionStatus = 'disconnected';
+      pairingCode = null;
+      qrCodeImage = null;
+
+      if (shouldReconnect) {
+        setTimeout(() => connectWhatsApp(currentPhoneNumber), 5000);
+      } else {
+        await cleanupSession();
+      }
+    }
+  });
+
+  sock.ev.on('messages.upsert', async (m) => {
+    if (m.type !== 'notify') return;
+
+    for (const msg of m.messages) {
+      try {
+        await handleIncomingMessage(msg);
+      } catch (err) {
+        console.error('Error handling message:', err.message);
+      }
+    }
+  });
 }
 
 /**
@@ -250,12 +301,12 @@ async function handleIncomingMessage(msg) {
   const senderName = msg.pushName || 'WhatsApp Contact';
   console.log(`New message from ${senderName} (${jid}): "${messageContent}"`);
 
-  broadcastThinking(jid, senderName, 'checking', 'Analyzing incoming message rules...');
+  addThinkingLog(jid, senderName, 'checking', 'Analyzing incoming message rules...');
 
   const senderJid = isGroup ? (key.participant || jid) : jid;
 
   // 1. Meet Detection
-  broadcastThinking(jid, senderName, 'parsing', 'Scanning message for meeting keywords and times...');
+  addThinkingLog(jid, senderName, 'parsing', 'Scanning message for meeting keywords and times...');
   const meetingRegex = /\b(meeting|call|zoom|appointment|interview|schedule|teams|google meet|skype|sync|calendar|facetime)\b/i;
   const timeRegex = /\b(\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)|\b(?:tomorrow|today|tonight|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i;
 
@@ -282,18 +333,10 @@ async function handleIncomingMessage(msg) {
     is_meeting: isMeeting
   });
 
-  const profile = await db.getOrCreateContactProfile(jid, senderName);
-
-  if (io && savedMsg) {
-    io.emit('new_message', {
-      ...savedMsg,
-      id: savedMsg.id || Date.now(),
-      profile
-    });
-  }
+  await db.getOrCreateContactProfile(jid, senderName);
 
   if (isMeeting) {
-    const alert = await db.saveMeetingAlert({
+    await db.saveMeetingAlert({
       sender: senderName,
       message: messageContent,
       detected_time: detectedTime,
@@ -301,13 +344,6 @@ async function handleIncomingMessage(msg) {
       alert_type: 'meeting',
       is_read: false
     });
-
-    if (io) {
-      io.emit('meeting_alert', {
-        ...alert,
-        id: alert.id || Date.now()
-      });
-    }
   }
 
   // 3. Check Blocked
@@ -315,11 +351,8 @@ async function handleIncomingMessage(msg) {
   const isSenderBlocked = isGroup ? await db.isBlocked(senderJid) : false;
 
   if (isJidBlocked || isSenderBlocked) {
-    broadcastThinking(jid, senderName, 'done', 'Sender is blocked. Dropped message.');
+    addThinkingLog(jid, senderName, 'done', 'Sender is blocked. Dropped message.');
     await db.updateMessageReply(savedMsg.id, '[Skipped - Blocked]', 'skipped');
-    if (io && savedMsg.id) {
-      io.emit('reply_status_update', { id: savedMsg.id, status: 'skipped', reply_text: '[Skipped - Blocked]' });
-    }
     return;
   }
 
@@ -331,34 +364,25 @@ async function handleIncomingMessage(msg) {
   const isGroupReplyEnabled = groupReplySetting === 'true';
 
   if (!isBotActive) {
-    broadcastThinking(jid, senderName, 'done', 'Ollie bot is currently inactive. Dropped message.');
+    addThinkingLog(jid, senderName, 'done', 'Ollie bot is currently inactive. Dropped message.');
     await db.updateMessageReply(savedMsg.id, '[Skipped - Bot Inactive]', 'skipped');
-    if (io && savedMsg.id) {
-      io.emit('reply_status_update', { id: savedMsg.id, status: 'skipped', reply_text: '[Skipped - Bot Inactive]' });
-    }
     return;
   }
 
   if (isGroup && !isGroupReplyEnabled) {
-    broadcastThinking(jid, senderName, 'done', 'Group replies are disabled. Dropped message.');
+    addThinkingLog(jid, senderName, 'done', 'Group replies are disabled. Dropped message.');
     await db.updateMessageReply(savedMsg.id, '[Skipped - Groups Disabled]', 'skipped');
-    if (io && savedMsg.id) {
-      io.emit('reply_status_update', { id: savedMsg.id, status: 'skipped', reply_text: '[Skipped - Groups Disabled]' });
-    }
     return;
   }
 
   // 5. Schedule Delayed AI Reply
   if (activeTimers.has(jid)) {
     const existing = activeTimers.get(jid);
-    broadcastThinking(jid, senderName, 'scheduling', 'Follow-up message received! Resetting delay timer to avoid spamming...');
+    addThinkingLog(jid, senderName, 'scheduling', 'Follow-up message received! Resetting delay timer to avoid spamming...');
     clearTimeout(existing.timeoutId);
     
     if (existing.messageId) {
       await db.updateMessageReply(existing.messageId, '[Skipped - Follow-up received]', 'skipped');
-      if (io) {
-        io.emit('reply_status_update', { id: existing.messageId, status: 'skipped', reply_text: '[Skipped - Follow-up received]' });
-      }
     }
     activeTimers.delete(jid);
   }
@@ -366,13 +390,13 @@ async function handleIncomingMessage(msg) {
   const delayStr = await db.getSetting('reply_delay', '10000');
   const delayMs = parseInt(delayStr, 10) || 10000;
 
-  broadcastThinking(jid, senderName, 'scheduling', `Scheduled AI auto-reply to fire in ${delayMs / 1000} seconds.`);
+  addThinkingLog(jid, senderName, 'scheduling', `Scheduled AI auto-reply to fire in ${delayMs / 1000} seconds.`);
 
   const startTime = Date.now();
   const timeoutId = setTimeout(async () => {
     try {
       // A. Vibe Detection
-      broadcastThinking(jid, senderName, 'vibe_detecting', 'Running Groq vibe classification engine...');
+      addThinkingLog(jid, senderName, 'vibe_detecting', 'Running Groq vibe classification engine...');
       const vibe = await ai.detectVibe(messageContent);
       await db.updateContactVibe(jid, vibe);
 
@@ -382,7 +406,7 @@ async function handleIncomingMessage(msg) {
       const shouldSendPoster = messageContent.toLowerCase().includes(posterTrigger.toLowerCase());
 
       if (shouldSendPoster && posterUrl) {
-        broadcastThinking(jid, senderName, 'sending', `User triggered keyword: "${posterTrigger}". Transmitting brochure poster...`);
+        addThinkingLog(jid, senderName, 'sending', `User triggered keyword: "${posterTrigger}". Transmitting brochure poster...`);
         try {
           await sock.sendMessage(jid, { 
             image: { url: posterUrl }, 
@@ -394,7 +418,7 @@ async function handleIncomingMessage(msg) {
       }
 
       // C. AI reply generation
-      broadcastThinking(jid, senderName, 'ai_generating', 'Querying Groq Llama 3.3 for conversational auto-reply...');
+      addThinkingLog(jid, senderName, 'ai_generating', 'Querying Groq Llama 3.3 for conversational auto-reply...');
       const chatHistory = await db.getChatHistory(jid, 5);
       const personalityPrompt = await db.getSetting('ai_personality', '');
       const customRules = await db.getSetting('bot_rules', '');
@@ -409,37 +433,21 @@ async function handleIncomingMessage(msg) {
       );
 
       // D. Send WhatsApp Message
-      broadcastThinking(jid, senderName, 'sending', 'Transmitting auto-reply payload to phone...');
+      addThinkingLog(jid, senderName, 'sending', 'Transmitting auto-reply payload to phone...');
       await sock.sendMessage(jid, { text: aiReply });
 
       // E. Update Database
       await db.updateMessageReply(savedMsg.id, aiReply, 'replied');
-      const updatedProfile = await db.getOrCreateContactProfile(jid, senderName);
+      await db.getOrCreateContactProfile(jid, senderName);
 
-      if (io && savedMsg.id) {
-        io.emit('reply_status_update', {
-          id: savedMsg.id,
-          status: 'replied',
-          reply_text: aiReply,
-          profile: {
-            ...updatedProfile,
-            vibe: vibe
-          }
-        });
-      }
-
-      broadcastThinking(jid, senderName, 'done', 'Auto-reply processed successfully.');
+      addThinkingLog(jid, senderName, 'done', 'Auto-reply processed successfully.');
 
     } catch (err) {
       console.error(`Failed to send auto-reply to ${senderName}:`, err.message);
-      broadcastThinking(jid, senderName, 'done', `Failed to reply: ${err.message}`);
+      addThinkingLog(jid, senderName, 'done', `Failed to reply: ${err.message}`);
       await db.updateMessageReply(savedMsg.id, `[Error: ${err.message}]`, 'failed');
-      if (io && savedMsg.id) {
-        io.emit('reply_status_update', { id: savedMsg.id, status: 'failed', reply_text: `[Error: ${err.message}]` });
-      }
     } finally {
       activeTimers.delete(jid);
-      broadcastTimers();
     }
   }, delayMs);
 
@@ -452,33 +460,14 @@ async function handleIncomingMessage(msg) {
     startTime,
     delayMs
   });
-
-  broadcastTimers();
 }
 
 /**
- * Broadcast current connection status
+ * Get active timers list
  */
-function broadcastStatus() {
-  if (io) {
-    io.emit('status_update', {
-      status: connectionStatus,
-      pairingCode: pairingCode,
-      qrCode: qrCodeImage,
-      phoneNumber: currentPhoneNumber
-    });
-  }
-}
-
-/**
- * Broadcast active timers
- */
-function broadcastTimers() {
-  if (!io) return;
-  
+function getActiveTimers() {
   const timersList = [];
   const now = Date.now();
-  
   for (const [jid, data] of activeTimers.entries()) {
     const elapsed = now - data.startTime;
     const timeLeft = Math.max(0, data.delayMs - elapsed);
@@ -491,16 +480,12 @@ function broadcastTimers() {
       messageId: data.messageId
     });
   }
-  
-  io.emit('timers_update', timersList);
+  return timersList;
 }
 
-// Periodically update active timers
-setInterval(() => {
-  if (activeTimers.size > 0) {
-    broadcastTimers();
-  }
-}, 1000);
+function broadcastStatusToConsole() {
+  console.log(`[Status Update] Connection status: ${connectionStatus}, Phone: ${currentPhoneNumber}`);
+}
 
 /**
  * Helper to extract raw text
@@ -533,8 +518,6 @@ async function disconnectWhatsApp() {
     }
 
     await cleanupSession();
-    broadcastStatus();
-    console.log('WhatsApp disconnected and credentials cleared.');
     return true;
   } catch (err) {
     console.error('Error disconnecting WhatsApp:', err.message);
@@ -560,7 +543,9 @@ function getStatus() {
     status: connectionStatus,
     pairingCode,
     qrCode: qrCodeImage,
-    phoneNumber: currentPhoneNumber
+    phoneNumber: currentPhoneNumber,
+    activeTimers: getActiveTimers(),
+    thinkingLogs: ollieThinkingLogs
   };
 }
 
@@ -587,6 +572,7 @@ async function sendManualMessage(jid, text) {
 module.exports = {
   init,
   connectWhatsApp,
+  getPairingCodeDirect,
   disconnectWhatsApp,
   getStatus,
   sendManualMessage,
