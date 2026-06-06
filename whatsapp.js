@@ -78,6 +78,20 @@ async function uploadSessionToDatabase() {
  */
 async function connectWhatsApp(phoneNumber = null) {
   try {
+    // 1. Close and clean up any existing socket to prevent parallel conflicts
+    if (sock) {
+      console.log('Closing existing WhatsApp socket before reconnecting...');
+      try {
+        sock.ev.removeAllListeners('connection.update');
+        sock.ev.removeAllListeners('creds.update');
+        sock.ev.removeAllListeners('messages.upsert');
+        sock.end();
+      } catch (e) {
+        console.warn('Error closing old socket:', e.message);
+      }
+      sock = null;
+    }
+
     connectionStatus = 'connecting';
     pairingCode = null;
     currentPhoneNumber = phoneNumber;
@@ -89,7 +103,7 @@ async function connectWhatsApp(phoneNumber = null) {
       auth: state,
       printQRInTerminal: false,
       logger: logger,
-      browser: ['Ollie AI Bot', 'Chrome', '1.0.0']
+      browser: ['Ubuntu', 'Chrome', '20.0.04'] // Standard browser signature for pairing code stability
     });
 
     sock.ev.on('creds.update', async () => {
