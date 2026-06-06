@@ -501,7 +501,10 @@
     let socket = null;
 
     function initSocket() {
-      socket = io();
+      // Force direct WebSockets to bypass Render's proxy long-polling block
+      socket = io({
+        transports: ['websocket']
+      });
 
       socket.on('connect', () => {
         showToast('System Online', 'Real-time sync established.', 'success');
