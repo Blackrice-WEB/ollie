@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ollie AI Auto-Reply Bot & Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;750&display=swap" rel="stylesheet">
+  <!-- Socket.IO Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            wa: {
+              green: '#25D366',
+              teal: '#128C7E',
+              darkteal: '#075E54',
+              lightgreen: '#DCF8C6',
+              chatbg: '#0b141a',
+              cardbg: '#111b21',
+              border: '#222e35',
+              bg: '#0c1317'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #05080a;
+      color: #e9edef;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0b141a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #222e35;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #25D366;
+    }
+    @keyframes glow-pulse {
+      0% { box-shadow: 0 0 5px rgba(37, 211, 102, 0.2); }
+      50% { box-shadow: 0 0 20px rgba(37, 211, 102, 0.6); }
+      100% { box-shadow: 0 0 5px rgba(37, 211, 102, 0.2); }
+    }
+    .neon-glow-active {
+      animation: glow-pulse 3s infinite ease-in-out;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 1; }
+      50% { transform: scale(1.1); opacity: 0.5; }
+      100% { transform: scale(0.95); opacity: 1; }
+    }
+    .live-pulse {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scrollbar overflow-x-hidden">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="bg-wa-cardbg/80 backdrop-blur-md border-b border-wa-border px-6 py-4 sticky top-0 z-40 shadow-xl">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 bg-wa-green rounded-xl flex items-center justify-center text-wa-chatbg shadow-lg shadow-wa-green/20 hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-brain text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight font-display flex items-center gap-2">
+            Ollie AI Assistant
+            <span class="text-[10px] uppercase font-sans tracking-widest px-2 py-0.5 rounded-full bg-wa-green/10 text-wa-green border border-wa-green/20 font-black">Oliver Edition</span>
+          </h1>
+          <p class="text-xs text-gray-400">Llama 3.3 AI Auto-Responder & Media Dispatcher (Flat Structure)</p>
+        </div>
+      </div>
+      
+      <!-- Connection Status -->
+      <div class="flex items-center gap-4">
+        <div id="header-status" class="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span>
+          <span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>
+        </div>
+        <button onclick="scrollToConnect()" class="text-xs font-bold bg-wa-green hover:bg-wa-green/90 text-wa-chatbg px-4 py-2.5 rounded-xl transition-all shadow-md hover:shadow-wa-green/20 flex items-center gap-1.5">
+          <i class="fa-solid fa-link"></i> Link Device
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 space-y-6">
+
+    <!-- 1. STATS BAR -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+        <div class="space-y-1">
+          <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Messages</span>
+          <h3 id="stat-total" class="text-2xl font-black font-display text-white">0</h3>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-wa-green/10 group-hover:text-wa-green transition-colors">
+          <i class="fa-solid fa-comments text-lg"></i>
+        </div>
+      </div>
+
+      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+        <div class="space-y-1">
+          <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Replies Sent</span>
+          <h3 id="stat-replied" class="text-2xl font-black font-display text-wa-green">0</h3>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-wa-green/10 group-hover:text-wa-green transition-colors">
+          <i class="fa-solid fa-paper-plane text-lg"></i>
+        </div>
+      </div>
+
+      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+        <div class="space-y-1">
+          <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Active Countdowns</span>
+          <h3 id="stat-pending" class="text-2xl font-black font-display text-amber-400">0</h3>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-colors">
+          <i class="fa-solid fa-stopwatch text-lg"></i>
+        </div>
+      </div>
+
+      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+        <div class="space-y-1">
+          <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Meeting Alerts</span>
+          <h3 id="stat-alerts" class="text-2xl font-black font-display text-yellow-400">0</h3>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-yellow-500/10 group-hover:text-yellow-405 transition-colors">
+          <i class="fa-solid fa-calendar-check text-lg"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. MAIN INTERACTIVE COLUMNS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- LEFT COLUMN -->
+      <div class="space-y-6 lg:col-span-1">
+        
+        <!-- CONNECT WHATSAPP -->
+        <section id="section-connect" class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-wa-green"></div>
+          <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-qrcode text-wa-green"></i> 1. Link WhatsApp Account
+          </h2>
+          
+          <div id="connection-card-content" class="space-y-4">
+            <div id="conn-state-disconnected" class="space-y-3">
+              <p class="text-xs text-gray-450 leading-relaxed">
+                Link Oliver's phone number to generate an 8-character pairing code to log in. No terminal QR codes needed!
+              </p>
+              <div>
+                <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Phone Number (International)</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 text-xs">
+                    <i class="fa-solid fa-phone"></i>
+                  </span>
+                  <input type="text" id="phone-input" value="+254705760434" placeholder="e.g. +254705760434" 
+                    class="w-full bg-wa-bg border border-wa-border rounded-xl py-2.5 pl-9 pr-4 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green focus:ring-1 focus:ring-wa-green transition-all">
+                </div>
+              </div>
+              <button onclick="requestPairingCode()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-key"></i> Get Pairing Code
+              </button>
+            </div>
+
+            <div id="conn-state-pairing" class="hidden space-y-4 bg-wa-bg p-4 rounded-xl border border-wa-border">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-extrabold text-amber-400 flex items-center gap-1 uppercase tracking-wide">
+                  <span class="w-2 h-2 rounded-full bg-amber-505 live-pulse"></span> Pairing Active
+                </span>
+                <span class="text-xs font-mono text-gray-400" id="pairing-phone-label"></span>
+              </div>
+              <p class="text-xs text-gray-400">
+                Enter this 8-character code on your phone: Go to <strong class="text-white">Linked Devices → Link with phone number</strong>.
+              </p>
+              <div class="flex justify-center my-2">
+                <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-wa-green bg-wa-cardbg border border-wa-border px-5 py-2.5 rounded-xl select-all shadow-inner">
+                  --------
+                </div>
+              </div>
+              <button onclick="cancelPairing()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-[10px] py-2 rounded-lg border border-red-500/20 transition-all">
+                Cancel / Reset Connection
+              </button>
+            </div>
+
+            <div id="conn-state-connected" class="hidden space-y-4 bg-wa-green/5 p-4 rounded-xl border border-wa-green/20">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-extrabold text-wa-green flex items-center gap-1.5 uppercase tracking-wide">
+                  <span class="w-2.5 h-2.5 rounded-full bg-wa-green live-pulse"></span> Connected & Listening
+                </span>
+                <i class="fa-solid fa-circle-check text-wa-green text-lg animate-bounce"></i>
+              </div>
+              <p class="text-xs text-gray-300">
+                Ollie is successfully connected and responding on Oliver's behalf!
+              </p>
+              <button onclick="disconnectWhatsApp()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-[10px] py-2 rounded-lg border border-red-500/20 transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-circle-xmark"></i> Disconnect Bot
+              </button>
+            </div>
+            
+            <div id="conn-state-loading" class="hidden py-6 text-center space-y-3 bg-wa-bg rounded-xl border border-wa-border">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-wa-green border-t-transparent"></div>
+              <p class="text-xs text-gray-400" id="loading-status-text">Connecting to WhatsApp...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- POSTER & TRIGGER SYSTEM -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden space-y-4">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-wa-green"></div>
+          <h2 class="text-sm font-extrabold font-display text-white flex items-center gap-2">
+            <i class="fa-solid fa-upload text-wa-green"></i> Media Poster Manager
+          </h2>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Configure the brochure poster Ollie sends when trigger words like "poster" are requested by a contact.
+          </p>
+          
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Poster Image URL</label>
+              <input type="text" id="setting-poster-url" placeholder="https://images.unsplash.com/photo..."
+                class="w-full bg-wa-bg border border-wa-border rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-wa-green transition-all">
+            </div>
+            <div>
+              <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Trigger Keyword</label>
+              <input type="text" id="setting-poster-trigger" placeholder="e.g. poster"
+                class="w-full bg-wa-bg border border-wa-border rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-wa-green transition-all">
+            </div>
+            <button onclick="saveMediaSettings()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2 rounded-xl transition-all">
+              Save Media Configuration
+            </button>
+          </div>
+        </section>
+
+        <!-- CUSTOM RULES PASTER -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden space-y-4">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-purple-500"></div>
+          <h2 class="text-sm font-extrabold font-display text-white flex items-center gap-2">
+            <i class="fa-solid fa-book-open text-purple-500"></i> Pasted Rules File
+          </h2>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Paste your custom bot behavior guidelines or text rules files here. Ollie reads these rules strictly before drafting any AI reply.
+          </p>
+
+          <div class="space-y-3">
+            <textarea id="setting-bot-rules" rows="6" 
+              class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-[11px] font-mono text-wa-green focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
+              placeholder="1. Speak like Oliver's assistant...\n2. Answer politely..."></textarea>
+            <button onclick="saveRulesFile()" class="w-full bg-purple-650 hover:bg-purple-550 text-white font-bold text-xs py-2 rounded-xl transition-all">
+              Save Rules File
+            </button>
+          </div>
+        </section>
+
+        <!-- GENERAL SETTINGS -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+          <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-blue-500"></i> General Settings
+          </h2>
+          
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-wa-border">
+              <div>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Bot Active</h4>
+                <p class="text-[10px] text-gray-400">Toggle automatic AI replies globally</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="setting-bot-active" class="sr-only peer" onchange="updateSettingToggle('bot_active', this)">
+                <div class="w-10 h-5.5 bg-gray-750 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-wa-green"></div>
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between pb-3 border-b border-wa-border">
+              <div>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Group Auto-Reply</h4>
+                <p class="text-[10px] text-gray-400">Respond inside group chats</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="setting-groups" class="sr-only peer" onchange="updateSettingToggle('auto_reply_groups', this)">
+                <div class="w-10 h-5.5 bg-gray-750 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-wa-green"></div>
+              </label>
+            </div>
+
+            <div class="space-y-1.5 pb-3 border-b border-wa-border">
+              <div class="flex justify-between items-center text-xs">
+                <h4 class="font-bold text-white uppercase tracking-wider text-[10px]">Reply Delay</h4>
+                <span id="delay-badge" class="font-bold text-wa-green bg-wa-green/10 px-2 py-0.5 rounded">3 mins</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="number" id="setting-delay" min="0.1" step="0.1" value="3" 
+                  class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                <span class="text-xs text-gray-400">minutes</span>
+                <button onclick="saveDelaySetting()" class="bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 font-bold px-3 py-1.5 rounded-xl transition-all text-xs">
+                  Save
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <h4 class="text-xs font-bold text-white uppercase tracking-wider text-[10px]">AI Personality Prompt</h4>
+              <textarea id="setting-ai-prompt" rows="3" 
+                class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
+                placeholder="Example: You are friendly, casual, and use emojis..."></textarea>
+              <button onclick="saveAiPrompt()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2 rounded-xl transition-all shadow-md">
+                Save Personality Prompt
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- BLOCKED CONTACTS -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
+          <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-ban text-red-500"></i> Blocked Contacts
+          </h2>
+          
+          <div class="space-y-4">
+            <form onsubmit="blockContactForm(event)" class="space-y-2 bg-wa-bg p-3 rounded-xl border border-wa-border">
+              <span class="text-[9px] uppercase tracking-wider font-bold text-gray-400">Add Block Rule</span>
+              <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="block-jid" placeholder="JID or Phone" required
+                  class="w-full bg-wa-cardbg border border-wa-border rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500">
+                <input type="text" id="block-name" placeholder="Name" required
+                  class="w-full bg-wa-cardbg border border-wa-border rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-red-500">
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+                  <input type="checkbox" id="block-isgroup" class="rounded bg-wa-cardbg border-wa-border text-red-500 focus:ring-0">
+                  Is Group?
+                </label>
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-plus"></i> Block
+                </button>
+              </div>
+            </form>
+
+            <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+              <span class="text-[9px] uppercase tracking-wider font-bold text-gray-400 block mb-1">Blocked List (<span id="blocked-count">0</span>)</span>
+              <div id="blocked-list" class="space-y-1.5">
+                <p class="text-xs text-gray-500 text-center py-4">No blocked contacts yet.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- MIDDLE COLUMN -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- OLLIE AI BRAIN COGNITION CONSOLE -->
+        <section class="bg-wa-cardbg border border-wa-green/30 rounded-2xl p-6 shadow-xl relative overflow-hidden neon-glow-active">
+          <div class="absolute top-0 right-0 w-36 h-36 bg-wa-green/5 rounded-full blur-3xl"></div>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-extrabold text-wa-green flex items-center gap-2 uppercase tracking-wider font-mono">
+              <span class="w-2.5 h-2.5 bg-wa-green rounded-full animate-ping"></span>
+              Ollie Cognitive Brain Status
+            </h3>
+            <div class="text-[9px] text-gray-500 font-mono">Real-time LLama-3.3 thought logs</div>
+          </div>
+
+          <div id="ollie-brain-logs" class="bg-wa-bg rounded-xl p-4 border border-wa-border font-mono text-[11px] text-wa-green/90 h-40 overflow-y-auto custom-scrollbar space-y-1.5 shadow-inner">
+            <div class="flex flex-col items-center justify-center h-full text-gray-600 space-y-1 text-center font-sans">
+              <i class="fa-solid fa-terminal text-lg opacity-40"></i>
+              <p class="text-[10px]">Ollie Brain is currently in deep hibernation. Waiting for inbound WhatsApp traffic...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACTIVE REPLY TIMERS (COUNTDOWNS) -->
+        <div id="active-timers-container" class="hidden bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 shadow-sm">
+          <h3 class="text-xs font-bold text-amber-400 flex items-center gap-2 mb-3 uppercase tracking-wider">
+            <i class="fa-solid fa-stopwatch animate-pulse"></i> Active Auto-Reply Countdowns
+          </h3>
+          <div id="timers-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <!-- Timers Rendered Dynamically -->
+          </div>
+        </div>
+
+        <!-- MESSAGES -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md flex flex-col min-h-[500px]">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-wa-border mb-4">
+            <div>
+              <h2 class="text-sm font-extrabold font-display text-white flex items-center gap-2">
+                <i class="fa-solid fa-message text-wa-green"></i> Live Chat Log
+              </h2>
+              <p class="text-xs text-gray-400 font-medium">Real-time incoming messages and bot auto-replies</p>
+            </div>
+            
+            <div class="flex items-center gap-2 max-w-xs w-full">
+              <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-500 text-xs">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="message-search" oninput="filterMessages()" placeholder="Search sender or text..." 
+                  class="w-full bg-wa-bg border border-wa-border rounded-xl py-1.5 pl-8 pr-3 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green transition-all">
+              </div>
+            </div>
+          </div>
+
+          <div id="messages-log" class="flex-1 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+            <div class="flex flex-col items-center justify-center py-20 text-gray-550 space-y-2">
+              <i class="fa-solid fa-comments-dollar text-3xl"></i>
+              <p class="text-xs">No messages in database. Wait for an incoming chat!</p>
+            </div>
+          </div>
+
+          <!-- Quick Message Sender Box -->
+          <div class="mt-4 pt-4 border-t border-wa-border bg-wa-bg/30 p-4 rounded-xl">
+            <h4 class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
+              <i class="fa-solid fa-reply mr-1"></i> Quick Manual Send (Override Bot)
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <input type="text" id="manual-jid" placeholder="Recipient JID (e.g. 254705760434@s.whatsapp.net)"
+                class="bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green md:col-span-1">
+              <div class="relative md:col-span-2 flex gap-2">
+                <input type="text" id="manual-text" placeholder="Type a manual message to send now..."
+                  class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green">
+                <button onclick="sendManualMessage()" class="bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shrink-0">
+                  <i class="fa-solid fa-paper-plane"></i> Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MEETING ALERTS -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md">
+          <div class="flex items-center justify-between pb-4 border-b border-wa-border mb-4">
+            <div>
+              <h2 class="text-sm font-extrabold font-display text-yellow-400 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-check animate-bounce"></i> Meeting Alerts
+              </h2>
+              <p class="text-xs text-gray-400 font-medium font-sans">Parsed automatically using Regex</p>
+            </div>
+            <button onclick="markAllAlertsRead()" class="text-xs font-bold text-yellow-400 hover:text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1">
+              <i class="fa-solid fa-check-double"></i> Dismiss All
+            </button>
+          </div>
+
+          <div id="alerts-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto custom-scrollbar pr-1">
+            <div class="col-span-2 text-center py-10 text-gray-550 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
+              <i class="fa-regular fa-calendar text-3xl"></i>
+              <p class="text-xs">No active meeting alerts. Safe scheduling!</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-wa-cardbg border-t border-wa-border py-4 px-6 text-center text-xs text-gray-500 mt-12">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+      <p>&copy; 2026 Ollie AI Auto-Reply Bot. Created for Oliver. Powered by Groq Llama-3.3-70b & Supabase.</p>
+      <p class="flex items-center gap-2">
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-wa-green"></span> Dashboard Live</span>
+        <span>|</span>
+        <span class="text-gray-400 font-medium">Node.js Server</span>
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    let messages = [];
+    let blockedContacts = [];
+    let meetingAlerts = [];
+    let settings = {};
+    let activeTimersList = [];
+    let socket = null;
+
+    function initSocket() {
+      socket = io();
+
+      socket.on('connect', () => {
+        showToast('System Online', 'Real-time sync established.', 'success');
+      });
+
+      socket.on('disconnect', () => {
+        updateStatusDisplay({ status: 'disconnected', pairingCode: null });
+        showToast('System Offline', 'Lost connection to backend.', 'error');
+      });
+
+      socket.on('status_update', (data) => {
+        updateStatusDisplay(data);
+      });
+
+      socket.on('pairing_code', (data) => {
+        showToast('Pairing Code Ready', 'Enter it in your phone.', 'info');
+        updateStatusDisplay({ status: 'pairing', pairingCode: data.code });
+      });
+
+      socket.on('new_message', (msg) => {
+        messages.unshift(msg);
+        renderMessages();
+        updateStats();
+        
+        showToast(
+          `Message from ${msg.sender_name}`,
+          `"${msg.message_text.substring(0, 40)}..."`,
+          msg.is_meeting ? 'warning' : 'info'
+        );
+      });
+
+      socket.on('reply_status_update', (data) => {
+        const msg = messages.find(m => m.id === data.id);
+        if (msg) {
+          msg.reply_status = data.status;
+          msg.reply_text = data.reply_text;
+          if (data.profile && msg.profile) {
+            msg.profile = data.profile;
+          }
+          renderMessages();
+          updateStats();
+          
+          if (data.status === 'replied') {
+            showToast('Auto-Reply Sent', `To ${msg.sender_name}: "${data.reply_text.substring(0, 40)}..."`, 'success');
+          }
+        } else {
+          fetchMessages();
+        }
+      });
+
+      socket.on('timers_update', (timers) => {
+        activeTimersList = timers;
+        renderActiveTimers();
+        updateStats();
+      });
+
+      socket.on('ollie_thinking', (log) => {
+        renderThinkingLog(log);
+      });
+
+      socket.on('meeting_alert', (alert) => {
+        meetingAlerts.unshift(alert);
+        renderAlerts();
+        updateStats();
+        showToast(
+          '⚠️ Meeting Alert Detected!',
+          `${alert.sender} scheduled a discussion: "${alert.message.substring(0, 40)}..."`,
+          'warning'
+        );
+      });
+
+      socket.on('alert_marked_read', (data) => {
+        meetingAlerts = meetingAlerts.filter(a => String(a.id) !== String(data.id));
+        renderAlerts();
+        updateStats();
+      });
+
+      socket.on('all_alerts_read', () => {
+        meetingAlerts = [];
+        renderAlerts();
+        updateStats();
+        showToast('Alerts Dismissed', 'All meeting alerts marked as read.', 'success');
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initSocket();
+      fetchAllData();
+    });
+
+    async function fetchAllData() {
+      await Promise.all([
+        fetchStatus(),
+        fetchMessages(),
+        fetchAlerts(),
+        fetchBlocked(),
+        fetchSettings()
+      ]);
+      updateStats();
+    }
+
+    function showToast(title, text, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bgClass = 'bg-wa-cardbg border-blue-500';
+      let iconClass = 'fa-circle-info text-blue-400';
+      
+      if (type === 'success') {
+        bgClass = 'bg-wa-cardbg border-wa-green';
+        iconClass = 'fa-circle-check text-wa-green';
+      } else if (type === 'warning') {
+        bgClass = 'bg-wa-cardbg border-yellow-500';
+        iconClass = 'fa-triangle-exclamation text-yellow-400';
+      } else if (type === 'error') {
+        bgClass = 'bg-wa-cardbg border-red-500';
+        iconClass = 'fa-circle-xmark text-red-400';
+      }
+
+      toast.className = `w-full p-4 rounded-xl border bg-opacity-95 backdrop-blur-md shadow-2xl flex items-start gap-3 pointer-events-auto transition-all duration-300 transform translate-y-0`;
+      toast.innerHTML = `
+        <div class="mt-0.5">
+          <i class="fa-solid ${iconClass} text-lg"></i>
+        </div>
+        <div class="flex-1">
+          <h4 class="text-xs font-bold text-white">${title}</h4>
+          <p class="text-[11px] text-gray-300 mt-0.5">${text}</p>
+        </div>
+        <button class="text-gray-505 hover:text-gray-300 transition-colors text-xs" onclick="this.parentElement.remove()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 6000);
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data.success) {
+          updateStatusDisplay(data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Update Connection State
+    function updateStatusDisplay(data) {
+      const headerStatus = document.getElementById('header-status');
+      
+      const cardDisconnected = document.getElementById('conn-state-disconnected');
+      const cardPairing = document.getElementById('conn-state-pairing');
+      const cardConnected = document.getElementById('conn-state-connected');
+      const cardLoading = document.getElementById('conn-state-loading');
+
+      cardDisconnected.classList.add('hidden');
+      cardPairing.classList.add('hidden');
+      cardConnected.classList.add('hidden');
+      cardLoading.classList.add('hidden');
+
+      if (data.status === 'connected') {
+        headerStatus.className = "flex items-center gap-2 bg-wa-green/10 border border-wa-green/20 px-3.5 py-1.5 rounded-full text-sm text-wa-green";
+        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-wa-green live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connected</span>`;
+        
+        cardConnected.classList.remove('hidden');
+      } else if (data.status === 'pairing') {
+        headerStatus.className = "flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-full text-sm text-amber-400";
+        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Pairing...</span>`;
+        
+        cardPairing.classList.remove('hidden');
+        document.getElementById('pairing-code-display').innerText = formatPairingCode(data.pairingCode);
+        document.getElementById('pairing-phone-label').innerText = data.phoneNumber || '';
+      } else if (data.status === 'connecting') {
+        headerStatus.className = "flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-full text-sm text-blue-400";
+        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connecting</span>`;
+        
+        cardLoading.classList.remove('hidden');
+        document.getElementById('loading-status-text').innerText = "Establishing WhatsApp connection...";
+      } else {
+        headerStatus.className = "flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400";
+        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>`;
+        
+        cardDisconnected.classList.remove('hidden');
+      }
+    }
+
+    function formatPairingCode(code) {
+      if (!code) return '--------';
+      if (code.length === 8) {
+        return `${code.substring(0, 4)}-${code.substring(4)}`;
+      }
+      return code;
+    }
+
+    async function requestPairingCode() {
+      const phoneInput = document.getElementById('phone-input');
+      const phoneNumber = phoneInput.value.trim();
+      
+      if (!phoneNumber) {
+        showToast('Input Required', 'Please enter a valid phone number with country code.', 'error');
+        return;
+      }
+
+      updateStatusDisplay({ status: 'connecting' });
+
+      try {
+        const res = await fetch('/api/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast('Connection Failed', data.error || 'Failed to initiate pairing.', 'error');
+          fetchStatus();
+        }
+      } catch (err) {
+        showToast('Server Error', 'Could not reach server.', 'error');
+        fetchStatus();
+      }
+    }
+
+    async function disconnectWhatsApp() {
+      if (!confirm('Are you sure you want to disconnect WhatsApp?')) return;
+      try {
+        const res = await fetch('/api/disconnect', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Disconnected', 'WhatsApp session logged out.', 'success');
+          fetchAllData();
+        }
+      } catch (err) {
+        showToast('Error', 'API request failed.', 'error');
+      }
+    }
+
+    async function cancelPairing() {
+      try {
+        const res = await fetch('/api/disconnect', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Reset Complete', 'Connection reset successfully.', 'success');
+          fetchStatus();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function fetchMessages() {
+      try {
+        const res = await fetch('/api/messages');
+        const data = await res.json();
+        if (data.success) {
+          messages = data.messages || [];
+          renderMessages();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderMessages() {
+      const container = document.getElementById('messages-log');
+      const searchVal = document.getElementById('message-search').value.toLowerCase();
+      
+      const filtered = messages.filter(m => 
+        m.sender_name.toLowerCase().includes(searchVal) ||
+        m.message_text.toLowerCase().includes(searchVal) ||
+        (m.reply_text && m.reply_text.toLowerCase().includes(searchVal)) ||
+        m.jid.toLowerCase().includes(searchVal)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-20 text-gray-500 space-y-2">
+            <i class="fa-solid fa-magnifying-glass text-2xl opacity-40"></i>
+            <p class="text-xs">No matching messages found.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(m => {
+        let statusPill = '';
+        if (m.reply_status === 'replied') {
+          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-500/10 text-green-450 border border-green-550/20"><i class="fa-solid fa-circle-check mr-0.5"></i> Replied</span>`;
+        } else if (m.reply_status === 'pending') {
+          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-450 border border-amber-550/20 animate-pulse"><i class="fa-solid fa-hourglass-start mr-0.5"></i> Pending</span>`;
+        } else {
+          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-750 text-gray-400 border border-gray-650"><i class="fa-solid fa-ban mr-0.5"></i> Skipped</span>`;
+        }
+
+        const groupBadge = m.is_group ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">Group</span>` : '';
+        const meetingBadge = m.is_meeting ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse">Meeting</span>` : '';
+        const vibeText = m.profile?.vibe || 'Friendly';
+        const vibeBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-450 border border-emerald-500/20">Vibe: ${vibeText}</span>`;
+
+        const formattedTime = new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        return `
+          <div class="bg-wa-bg p-4 rounded-xl border border-wa-border hover:border-wa-green/20 transition-all space-y-3 relative group">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <strong class="text-xs text-white">${escapeHtml(m.sender_name)}</strong>
+                <span class="text-[10px] text-gray-505 font-mono">${m.jid.split('@')[0]}</span>
+                ${groupBadge}
+                ${meetingBadge}
+                ${vibeBadge}
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] text-gray-505">${formattedTime}</span>
+                ${statusPill}
+              </div>
+            </div>
+
+            <div class="bg-wa-cardbg/80 border border-wa-border p-3 rounded-xl max-w-xl text-xs text-gray-200">
+              ${escapeHtml(m.message_text)}
+            </div>
+
+            ${m.reply_text ? `
+              <div class="flex flex-col items-end w-full pl-6">
+                <div class="bg-wa-darkteal/20 border border-wa-teal/30 p-3 rounded-xl max-w-xl text-xs text-gray-200">
+                  <div class="text-[9px] text-wa-green font-bold uppercase tracking-widest mb-1">Auto-Reply</div>
+                  ${escapeHtml(m.reply_text)}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <button onclick="setQuickReplyTarget('${m.jid}')" title="Quick Reply" class="p-1 bg-wa-green/10 hover:bg-wa-green text-wa-green hover:text-wa-chatbg rounded-md text-xs transition-all border border-wa-green/20">
+                <i class="fa-solid fa-reply"></i>
+              </button>
+              <button onclick="quickBlockContact('${m.jid}', '${m.sender_name}', ${m.is_group})" title="Block Sender" class="p-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-md text-xs transition-all border border-red-500/20">
+                <i class="fa-solid fa-ban"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterMessages() {
+      renderMessages();
+    }
+
+    function setQuickReplyTarget(jid) {
+      document.getElementById('manual-jid').value = jid;
+      document.getElementById('manual-text').focus();
+      showToast('Recipient Set', `Manual recipient set to: ${jid}`, 'info');
+    }
+
+    async function sendManualMessage() {
+      const jidInput = document.getElementById('manual-jid');
+      const textInput = document.getElementById('manual-text');
+      
+      const jid = jidInput.value.trim();
+      const text = textInput.value.trim();
+
+      if (!jid || !text) {
+        showToast('Fields Required', 'JID and Message text are required.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jid, text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Sent Successfully', 'Manual override message has been sent.', 'success');
+          textInput.value = '';
+          fetchAllData();
+        } else {
+          showToast('Send Failed', data.error || 'Failed to send.', 'error');
+        }
+      } catch (err) {
+        showToast('Error', 'Could not reach server.', 'error');
+      }
+    }
+
+    // Thinking Logs visualizer
+    const ollieLogsContainer = document.getElementById('ollie-brain-logs');
+    function renderThinkingLog(log) {
+      if (ollieLogsContainer.querySelector('.fa-terminal')) {
+        ollieLogsContainer.innerHTML = '';
+      }
+
+      let tagColor = 'text-blue-400';
+      if (log.step === 'done') tagColor = 'text-wa-green';
+      if (log.step === 'vibe_detecting') tagColor = 'text-purple-400';
+      if (log.step === 'ai_generating') tagColor = 'text-pink-400';
+      if (log.step === 'sending') tagColor = 'text-yellow-450';
+
+      const formattedTime = new Date(log.timestamp).toLocaleTimeString();
+      const logDiv = document.createElement('div');
+      logDiv.className = 'flex gap-2 items-start leading-relaxed';
+      logDiv.innerHTML = `
+        <span class="text-gray-605 shrink-0 select-none">[${formattedTime}]</span>
+        <span class="${tagColor} font-bold shrink-0">[${log.step.toUpperCase()}]</span>
+        <span class="text-gray-305">${escapeHtml(log.detail)}</span>
+      `;
+      ollieLogsContainer.insertBefore(logDiv, ollieLogsContainer.firstChild);
+
+      if (ollieLogsContainer.children.length > 50) {
+        ollieLogsContainer.removeChild(ollieLogsContainer.lastChild);
+      }
+    }
+
+    // Meeting Alerts
+    async function fetchAlerts() {
+      try {
+        const res = await fetch('/api/alerts');
+        const data = await res.json();
+        if (data.success) {
+          meetingAlerts = (data.alerts || []).filter(a => !a.is_read);
+          renderAlerts();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderAlerts() {
+      const container = document.getElementById('alerts-container');
+      
+      if (meetingAlerts.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 text-center py-10 text-gray-500 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
+            <i class="fa-regular fa-calendar text-3xl"></i>
+            <p class="text-xs">No active meeting alerts. Safe scheduling!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = meetingAlerts.map(a => {
+        const dateStr = new Date(a.created_at).toLocaleDateString();
+        return `
+          <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-inner">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-yellow-400 flex items-center gap-1">
+                  <i class="fa-solid fa-bell animate-bounce"></i> ${escapeHtml(a.sender)}
+                </span>
+                <span class="text-[10px] text-gray-500">${dateStr}</span>
+              </div>
+              <p class="text-xs text-gray-200 leading-relaxed italic">
+                "${escapeHtml(a.message)}"
+              </p>
+              <div class="flex items-center gap-3 text-[10px] text-yellow-400 font-bold mt-1">
+                <span class="bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                  <i class="fa-solid fa-clock"></i> Time: ${escapeHtml(a.detected_time || 'Detected')}
+                </span>
+                <span class="bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                  <i class="fa-solid fa-calendar"></i> Date: ${escapeHtml(a.detected_date || 'Tomorrow')}
+                </span>
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button onclick="dismissAlert('${a.id}')" class="text-[10px] font-bold text-yellow-400 hover:text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1.5 rounded-lg transition-all border border-yellow-500/15">
+                <i class="fa-solid fa-check"></i> Dismiss Alert
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function dismissAlert(id) {
+      try {
+        const res = await fetch(`/api/alerts/${id}/read`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          meetingAlerts = meetingAlerts.filter(a => String(a.id) !== String(id));
+          renderAlerts();
+          updateStats();
+          showToast('Dismissed', 'Alert marked as read.', 'success');
+        }
+      } catch (err) {
+        showToast('Error', 'Could not dismiss alert.', 'error');
+      }
+    }
+
+    async function markAllAlertsRead() {
+      if (meetingAlerts.length === 0) return;
+      try {
+        const res = await fetch('/api/alerts/read-all', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          meetingAlerts = [];
+          renderAlerts();
+          updateStats();
+        }
+      } catch (err) {
+        showToast('Error', 'Failed to dismiss all alerts.', 'error');
+      }
+    }
+
+    // Blocked Contacts
+    async function fetchBlocked() {
+      try {
+        const res = await fetch('/api/blocked');
+        const data = await res.json();
+        if (data.success) {
+          blockedContacts = data.blocked || [];
+          renderBlocked();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderBlocked() {
+      const container = document.getElementById('blocked-list');
+      document.getElementById('blocked-count').innerText = blockedContacts.length;
+
+      if (blockedContacts.length === 0) {
+        container.innerHTML = `
+          <p class="text-[11px] text-gray-500 text-center py-4">No blocked contacts yet.</p>
+        `;
+        return;
+      }
+
+      container.innerHTML = blockedContacts.map(c => {
+        const jidShort = c.jid.split('@')[0];
+        const isGroupBadge = c.is_group ? `<span class="bg-blue-500/10 text-blue-400 text-[9px] px-1 rounded">Group</span>` : '';
+        return `
+          <div class="bg-wa-bg px-3 py-2 rounded-xl border border-wa-border flex items-center justify-between gap-2">
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs text-white font-semibold truncate">${escapeHtml(c.name)}</span>
+              <span class="text-[10px] text-gray-550 font-mono truncate">${jidShort} ${isGroupBadge}</span>
+            </div>
+            <button onclick="unblockContact('${c.jid}')" class="text-red-400 hover:text-red-305 hover:bg-red-500/15 p-1.5 rounded-lg transition-all" title="Unblock">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function blockContactForm(e) {
+      e.preventDefault();
+      let jid = document.getElementById('block-jid').value.trim();
+      const name = document.getElementById('block-name').value.trim();
+      const isGroup = document.getElementById('block-isgroup').checked;
+
+      if (!jid.includes('@')) {
+        jid = isGroup ? `${jid}@g.us` : `${jid}@s.whatsapp.net`;
+      }
+
+      try {
+        const res = await fetch('/api/blocked', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jid, name, is_group: isGroup })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Contact Blocked', `Future messages from ${name} will be ignored.`, 'success');
+          document.getElementById('block-jid').value = '';
+          document.getElementById('block-name').value = '';
+          document.getElementById('block-isgroup').checked = false;
+          fetchBlocked();
+        }
+      } catch (err) {
+        showToast('Error', 'API error blocking contact.', 'error');
+      }
+    }
+
+    async function quickBlockContact(jid, name, isGroup) {
+      if (!confirm(`Are you sure you want to block auto-replies for ${name}?`)) return;
+      try {
+        const res = await fetch('/api/blocked', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jid, name, is_group: isGroup })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Blocked', `Blocked ${name}`, 'success');
+          fetchBlocked();
+          fetchAllData();
+        }
+      } catch (err) {
+        showToast('Error', 'Failed to block.', 'error');
+      }
+    }
+
+    async function unblockContact(jid) {
+      try {
+        const res = await fetch(`/api/blocked/${encodeURIComponent(jid)}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Contact Unblocked', 'Auto-replies restored.', 'success');
+          fetchBlocked();
+        }
+      } catch (err) {
+        showToast('Error', 'API error unblocking contact.', 'error');
+      }
+    }
+
+    // Settings
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.success) {
+          settings = data.settings || {};
+          
+          document.getElementById('setting-bot-active').checked = settings.bot_active === 'true';
+          document.getElementById('setting-groups').checked = settings.auto_reply_groups === 'true';
+          
+          const delayMs = parseInt(settings.reply_delay, 10) || 10000;
+          const delayMins = (delayMs / 60000);
+          document.getElementById('setting-delay').value = delayMins;
+          document.getElementById('delay-badge').innerText = `${delayMins.toFixed(1)} mins`;
+
+          document.getElementById('setting-ai-prompt').value = settings.ai_personality || '';
+          document.getElementById('setting-bot-rules').value = settings.bot_rules || '';
+          document.getElementById('setting-poster-url').value = settings.poster_url || '';
+          document.getElementById('setting-poster-trigger').value = settings.poster_trigger || 'poster';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function updateSettingToggle(key, element) {
+      const value = element.checked ? 'true' : 'false';
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Setting Saved', `${key.replace('_', ' ')} updated to ${value}.`, 'success');
+          fetchSettings();
+        }
+      } catch (err) {
+        showToast('Error', 'Failed to update setting.', 'error');
+        element.checked = !element.checked;
+      }
+    }
+
+    async function saveDelaySetting() {
+      const mins = parseFloat(document.getElementById('setting-delay').value);
+      if (isNaN(mins) || mins < 0.1) {
+        showToast('Invalid Delay', 'Delay must be at least 0.1 minutes.', 'error');
+        return;
+      }
+
+      const ms = Math.round(mins * 60000);
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'reply_delay', value: String(ms) })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Delay Updated', `Timer set to ${mins} minutes.`, 'success');
+          fetchSettings();
+        }
+      } catch (err) {
+        showToast('Error', 'Failed to update delay.', 'error');
+      }
+    }
+
+    async function saveAiPrompt() {
+      const prompt = document.getElementById('setting-ai-prompt').value.trim();
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'ai_personality', value: prompt })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Prompt Saved', 'AI personality configuration updated.', 'success');
+          fetchSettings();
+        }
+      } catch (err) {
+        showToast('Error', 'Failed to save prompt.', 'error');
+      }
+    }
+
+    async function saveRulesFile() {
+      const rules = document.getElementById('setting-bot-rules').value.trim();
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'bot_rules', value: rules })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Rules Saved', 'Bot custom rules file updated successfully.', 'success');
+          fetchSettings();
+        }
+      } catch (err) {
+        showToast('Error', 'Failed to save rules file.', 'error');
+      }
+    }
+
+    async function saveMediaSettings() {
+      const url = document.getElementById('setting-poster-url').value.trim();
+      const trigger = document.getElementById('setting-poster-trigger').value.trim();
+      
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'poster_url', value: url })
+        });
+        
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'poster_trigger', value: trigger })
+        });
+
+        showToast('Media Saved', 'Poster URL and triggers saved.', 'success');
+        fetchSettings();
+      } catch (err) {
+        showToast('Error', 'Failed to save media settings.', 'error');
+      }
+    }
+
+    // Active Delay Timers Visualizer
+    function renderActiveTimers() {
+      const container = document.getElementById('timers-list');
+      const panel = document.getElementById('active-timers-container');
+
+      if (activeTimersList.length === 0) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      panel.classList.remove('hidden');
+      container.innerHTML = activeTimersList.map(t => {
+        const secondsLeft = Math.ceil(t.timeLeft / 1000);
+        const percent = Math.min(100, Math.round(((t.totalDelay - t.timeLeft) / t.totalDelay) * 100));
+        
+        return `
+          <div class="bg-wa-cardbg border border-amber-500/20 rounded-xl p-3.5 flex flex-col gap-2 shadow-inner">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-white truncate max-w-[150px]">
+                <i class="fa-solid fa-hourglass-half text-amber-400 animate-spin-slow"></i> ${escapeHtml(t.senderName)}
+              </span>
+              <span class="text-[10px] font-bold font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                ${secondsLeft}s left
+              </span>
+            </div>
+            <p class="text-[11px] text-gray-405 truncate italic">
+              "${escapeHtml(t.messageText)}"
+            </p>
+            <div class="w-full bg-gray-850 rounded-full h-1.5 overflow-hidden">
+              <div class="bg-amber-400 h-full transition-all duration-1000" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStats() {
+      const totalMessages = messages.length;
+      const repliedCount = messages.filter(m => m.reply_status === 'replied').length;
+      const pendingCount = activeTimersList.length;
+      const alertsCount = meetingAlerts.length;
+
+      document.getElementById('stat-total').innerText = totalMessages;
+      document.getElementById('stat-replied').innerText = repliedCount;
+      document.getElementById('stat-pending').innerText = pendingCount;
+      document.getElementById('stat-alerts').innerText = alertsCount;
+    }
+
+    function scrollToConnect() {
+      document.getElementById('section-connect').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
