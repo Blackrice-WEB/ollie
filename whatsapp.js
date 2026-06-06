@@ -39,7 +39,7 @@ async function init(socketIo) {
     connectWhatsApp();
   } else {
     console.log('No WhatsApp session found in database. Initializing default connection...');
-    connectWhatsApp(); // Start connection immediately to generate QR codes!
+    connectWhatsApp(); // Start connection immediately to listen for the QR event
   }
 }
 
@@ -104,12 +104,12 @@ async function connectWhatsApp(phoneNumber = null) {
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
-    // Knight Bot MD Formula: Use Browsers.ubuntu('Chrome') for pairing code stability
+    // Knight Bot MD Formula: Use stable Desktop browser signature
     sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
       logger: logger,
-      browser: Browsers.ubuntu('Chrome'), // Crucial fix for triggering phone prompt!
+      browser: ['Mac OS', 'Chrome', '120.0.0.0'], // Crucial desktop signature for pairing code stability
       defaultQueryTimeoutMs: undefined // Prevents cloud timeouts
     });
 
@@ -121,21 +121,51 @@ async function connectWhatsApp(phoneNumber = null) {
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // Handle QR Code Generation (Only if NOT requesting a pairing code)
-      if (qr && !currentPhoneNumber) {
-        try {
-          const qrImage = await QRCode.toDataURL(qr);
-          qrCodeImage = qrImage;
-          connectionStatus = 'pairing';
-          
-          console.log('New WhatsApp QR code generated.');
-          
-          if (io) {
-            io.emit('qr_code', { qr: qrCodeImage });
+      // Knight Bot MD / Atlas MD Formula: Request pairing code ONLY when the QR event fires (socket is ready!)
+      if (qr) {
+        if (currentPhoneNumber && !sock.authState.creds.registered) {
+          try {
+            const sanitizedPhone = currentPhoneNumber.replace(/[^0-9]/g, '');
+            console.log(`Socket is ready! Requesting pairing code for phone: ${sanitizedPhone}...`);
+            
+            connectionStatus = 'pairing';
+            broadcastStatus();
+
+            const code = await sock.requestPairingCode(sanitizedPhone);
+            
+            // Format pairing code for display (ABCD-EFGH)
+            const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
+            pairingCode = formattedCode;
+            qrCodeImage = null; // Clear QR since we are using pairing code
+            
+            console.log(`Generated pairing code: ${pairingCode}`);
+            
+            if (io) {
+              io.emit('pairing_code', { code: pairingCode });
+            }
+            broadcastStatus();
+          } catch (err) {
+            console.error('Error requesting pairing code:', err.message);
+            connectionStatus = 'disconnected';
+            pairingCode = null;
+            broadcastStatus();
           }
-          broadcastStatus();
-        } catch (qrErr) {
-          console.error('Error converting QR code to image:', qrErr.message);
+        } else {
+          // No phone number provided, convert QR to base64 image and send to dashboard
+          try {
+            const qrImage = await QRCode.toDataURL(qr);
+            qrCodeImage = qrImage;
+            connectionStatus = 'pairing';
+            
+            console.log('New WhatsApp QR code generated.');
+            
+            if (io) {
+              io.emit('qr_code', { qr: qrCodeImage });
+            }
+            broadcastStatus();
+          } catch (qrErr) {
+            console.error('Error converting QR code to image:', qrErr.message);
+          }
         }
       }
 
@@ -169,36 +199,6 @@ async function connectWhatsApp(phoneNumber = null) {
         }
       }
     });
-
-    // Knight Bot MD Formula: Request pairing code cleanly after a small delay
-    if (phoneNumber && !sock.authState.creds.registered) {
-      connectionStatus = 'pairing';
-      broadcastStatus();
-
-      await delay(3000); // Wait for socket connection to initialize
-      const sanitizedPhone = phoneNumber.replace(/[^0-9]/g, '');
-      console.log(`Requesting pairing code for phone: ${sanitizedPhone}...`);
-      
-      try {
-        const code = await sock.requestPairingCode(sanitizedPhone);
-        
-        // Format code as ABCD-EFGH for visual ease
-        const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
-        pairingCode = formattedCode;
-        qrCodeImage = null; // Clear QR code since we are using pairing code
-        console.log(`Generated pairing code: ${pairingCode}`);
-        
-        if (io) {
-          io.emit('pairing_code', { code: pairingCode });
-        }
-        broadcastStatus();
-      } catch (err) {
-        console.error('Error requesting pairing code:', err.message);
-        connectionStatus = 'disconnected';
-        pairingCode = null;
-        broadcastStatus();
-      }
-    }
 
     sock.ev.on('messages.upsert', async (m) => {
       if (m.type !== 'notify') return;
