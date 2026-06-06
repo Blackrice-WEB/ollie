@@ -95,7 +95,7 @@
             Ollie AI Assistant
             <span class="text-[10px] uppercase font-sans tracking-widest px-2 py-0.5 rounded-full bg-wa-green/10 text-wa-green border border-wa-green/20 font-black">Oliver Edition</span>
           </h1>
-          <p class="text-xs text-gray-400">Llama 3.3 AI Auto-Responder & Media Dispatcher (Flat Structure)</p>
+          <p class="text-xs text-gray-400">Llama 3.3 AI Auto-Responder & Media Dispatcher (Knight MD Formula)</p>
         </div>
       </div>
       
@@ -164,17 +164,47 @@
       <!-- LEFT COLUMN -->
       <div class="space-y-6 lg:col-span-1">
         
-        <!-- CONNECT WHATSAPP -->
+        <!-- CONNECT WHATSAPP (QR & PAIR CODE PANEL) -->
         <section id="section-connect" class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-wa-green"></div>
           <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-qrcode text-wa-green"></i> 1. Link WhatsApp Account
+            <i class="fa-solid fa-qrcode text-wa-green"></i> 1. Link WhatsApp (Knight MD style)
           </h2>
           
           <div id="connection-card-content" class="space-y-4">
-            <div id="conn-state-disconnected" class="space-y-3">
-              <p class="text-xs text-gray-450 leading-relaxed">
-                Link Oliver's phone number to generate an 8-character pairing code to log in. No terminal QR codes needed!
+            
+            <!-- Connection Tabs (Scan QR vs Pair Code) -->
+            <div class="flex border-b border-wa-border" id="connect-tabs">
+              <button onclick="switchConnectTab('qr')" id="tab-btn-qr" class="flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all">
+                <i class="fa-solid fa-qrcode mr-1"></i> Scan QR Code
+              </button>
+              <button onclick="switchConnectTab('pair')" id="tab-btn-pair" class="flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all">
+                <i class="fa-solid fa-key mr-1"></i> Use Pairing Code
+              </button>
+            </div>
+
+            <!-- Tab 1: QR Code Scanner -->
+            <div id="connect-tab-qr" class="space-y-3 text-center">
+              <p class="text-xs text-gray-400 leading-relaxed text-left">
+                Open WhatsApp on your phone -> Tap **Settings** -> **Linked Devices** -> **Link a Device**, and scan this code:
+              </p>
+              <div class="flex justify-center my-4">
+                <div class="p-4 bg-white rounded-2xl shadow-xl relative inline-block">
+                  <img id="qr-code-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80" alt="QR Code" class="w-40 h-40 object-contain blur-sm">
+                  <!-- Blurred Placeholder overlay before QR loads -->
+                  <div id="qr-loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-2xl p-2 text-xs text-wa-green font-bold font-mono">
+                    <i class="fa-solid fa-spinner animate-spin text-lg mb-2"></i>
+                    <span>Generating QR...</span>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[10px] text-gray-500">QR code refreshes automatically for security.</p>
+            </div>
+
+            <!-- Tab 2: Pairing Code Form -->
+            <div id="connect-tab-pair" class="hidden space-y-3">
+              <p class="text-xs text-gray-400 leading-relaxed">
+                Enter Oliver's phone number with country code. It requests an 8-character pairing code you enter on your phone.
               </p>
               <div>
                 <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Phone Number (International)</label>
@@ -189,28 +219,27 @@
               <button onclick="requestPairingCode()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
                 <i class="fa-solid fa-key"></i> Get Pairing Code
               </button>
-            </div>
 
-            <div id="conn-state-pairing" class="hidden space-y-4 bg-wa-bg p-4 rounded-xl border border-wa-border">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-extrabold text-amber-400 flex items-center gap-1 uppercase tracking-wide">
-                  <span class="w-2 h-2 rounded-full bg-amber-505 live-pulse"></span> Pairing Active
-                </span>
-                <span class="text-xs font-mono text-gray-400" id="pairing-phone-label"></span>
-              </div>
-              <p class="text-xs text-gray-400">
-                Enter this 8-character code on your phone: Go to <strong class="text-white">Linked Devices → Link with phone number</strong>.
-              </p>
-              <div class="flex justify-center my-2">
-                <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-wa-green bg-wa-cardbg border border-wa-border px-5 py-2.5 rounded-xl select-all shadow-inner">
-                  --------
+              <!-- Pairing Code Display -->
+              <div id="pairing-code-box" class="hidden space-y-3 bg-wa-bg p-4 rounded-xl border border-wa-border text-center">
+                <div class="flex items-center justify-between text-[10px]">
+                  <span class="font-extrabold text-amber-400 flex items-center gap-1 uppercase tracking-wide">
+                    <span class="w-2 h-2 rounded-full bg-amber-505 live-pulse"></span> Code Generated
+                  </span>
+                  <span class="text-xs font-mono text-gray-400" id="pairing-phone-label"></span>
                 </div>
+                <div class="flex justify-center my-2">
+                  <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-wa-green bg-wa-cardbg border border-wa-border px-5 py-2.5 rounded-xl select-all shadow-inner">
+                    --------
+                  </div>
+                </div>
+                <button onclick="cancelPairing()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-[10px] py-2 rounded-lg border border-red-500/20 transition-all">
+                  Cancel / Reset Code
+                </button>
               </div>
-              <button onclick="cancelPairing()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-[10px] py-2 rounded-lg border border-red-500/20 transition-all">
-                Cancel / Reset Connection
-              </button>
             </div>
 
+            <!-- Connected State -->
             <div id="conn-state-connected" class="hidden space-y-4 bg-wa-green/5 p-4 rounded-xl border border-wa-green/20">
               <div class="flex items-center justify-between">
                 <span class="text-[10px] font-extrabold text-wa-green flex items-center gap-1.5 uppercase tracking-wide">
@@ -218,7 +247,7 @@
                 </span>
                 <i class="fa-solid fa-circle-check text-wa-green text-lg animate-bounce"></i>
               </div>
-              <p class="text-xs text-gray-300">
+              <p class="text-xs text-gray-300 leading-relaxed">
                 Ollie is successfully connected and responding on Oliver's behalf!
               </p>
               <button onclick="disconnectWhatsApp()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-[10px] py-2 rounded-lg border border-red-500/20 transition-all flex items-center justify-center gap-1.5">
@@ -226,6 +255,7 @@
               </button>
             </div>
             
+            <!-- Loading State -->
             <div id="conn-state-loading" class="hidden py-6 text-center space-y-3 bg-wa-bg rounded-xl border border-wa-border">
               <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-wa-green border-t-transparent"></div>
               <p class="text-xs text-gray-400" id="loading-status-text">Connecting to WhatsApp...</p>
@@ -345,6 +375,7 @@
           </h2>
           
           <div class="space-y-4">
+            <!-- Add Blocked Form -->
             <form onsubmit="blockContactForm(event)" class="space-y-2 bg-wa-bg p-3 rounded-xl border border-wa-border">
               <span class="text-[9px] uppercase tracking-wider font-bold text-gray-400">Add Block Rule</span>
               <div class="grid grid-cols-2 gap-2">
@@ -422,7 +453,7 @@
                   <i class="fa-solid fa-magnifying-glass"></i>
                 </span>
                 <input type="text" id="message-search" oninput="filterMessages()" placeholder="Search sender or text..." 
-                  class="w-full bg-wa-bg border border-wa-border rounded-xl py-1.5 pl-8 pr-3 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green transition-all">
+                  class="w-full bg-wa-bg border border-wa-border rounded-xl py-1.5 pl-8 pr-3 text-xs text-white placeholder-gray-550 focus:outline-none focus:border-wa-green transition-all">
               </div>
             </div>
           </div>
@@ -441,10 +472,10 @@
             </h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
               <input type="text" id="manual-jid" placeholder="Recipient JID (e.g. 254705760434@s.whatsapp.net)"
-                class="bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green md:col-span-1">
+                class="bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-550 focus:outline-none focus:border-wa-green md:col-span-1">
               <div class="relative md:col-span-2 flex gap-2">
                 <input type="text" id="manual-text" placeholder="Type a manual message to send now..."
-                  class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green">
+                  class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-550 focus:outline-none focus:border-wa-green">
                 <button onclick="sendManualMessage()" class="bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shrink-0">
                   <i class="fa-solid fa-paper-plane"></i> Send
                 </button>
@@ -501,7 +532,7 @@
     let socket = null;
 
     function initSocket() {
-      // Force direct WebSockets to bypass Render's proxy long-polling block
+      // Force WebSockets directly to bypass Render's long-polling block
       socket = io({
         transports: ['websocket']
       });
@@ -517,6 +548,17 @@
 
       socket.on('status_update', (data) => {
         updateStatusDisplay(data);
+      });
+
+      // Listen to the raw QR code base64 image from the backend (Knight Bot MD Formula)
+      socket.on('qr_code', (data) => {
+        if (data.qr) {
+          const qrImg = document.getElementById('qr-code-img');
+          const qrOverlay = document.getElementById('qr-loading-overlay');
+          qrImg.src = data.qr;
+          qrImg.classList.remove('blur-sm');
+          if (qrOverlay) qrOverlay.classList.add('hidden');
+        }
       });
 
       socket.on('pairing_code', (data) => {
@@ -663,34 +705,54 @@
       const cardConnected = document.getElementById('conn-state-connected');
       const cardLoading = document.getElementById('conn-state-loading');
 
-      cardDisconnected.classList.add('hidden');
-      cardPairing.classList.add('hidden');
-      cardConnected.classList.add('hidden');
-      cardLoading.classList.add('hidden');
-
+      // If connected, hide setup options
       if (data.status === 'connected') {
+        cardDisconnected.classList.add('hidden');
+        cardPairing.classList.add('hidden');
+        cardLoading.classList.add('hidden');
+        
         headerStatus.className = "flex items-center gap-2 bg-wa-green/10 border border-wa-green/20 px-3.5 py-1.5 rounded-full text-sm text-wa-green";
         headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-wa-green live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connected</span>`;
         
         cardConnected.classList.remove('hidden');
-      } else if (data.status === 'pairing') {
-        headerStatus.className = "flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-full text-sm text-amber-400";
-        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Pairing...</span>`;
-        
-        cardPairing.classList.remove('hidden');
-        document.getElementById('pairing-code-display').innerText = formatPairingCode(data.pairingCode);
-        document.getElementById('pairing-phone-label').innerText = data.phoneNumber || '';
-      } else if (data.status === 'connecting') {
-        headerStatus.className = "flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-full text-sm text-blue-400";
-        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connecting</span>`;
-        
-        cardLoading.classList.remove('hidden');
-        document.getElementById('loading-status-text').innerText = "Establishing WhatsApp connection...";
       } else {
-        headerStatus.className = "flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400";
-        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>`;
+        cardConnected.classList.add('hidden');
         
-        cardDisconnected.classList.remove('hidden');
+        // Show current tab option depending on status
+        if (data.status === 'pairing') {
+          headerStatus.className = "flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-full text-sm text-amber-400";
+          headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Pairing...</span>`;
+          
+          if (data.pairingCode) {
+            // Show pairing code display
+            switchConnectTab('pair');
+            document.getElementById('pairing-code-box').classList.remove('hidden');
+            document.getElementById('pairing-code-display').innerText = formatPairingCode(data.pairingCode);
+            document.getElementById('pairing-phone-label').innerText = data.phoneNumber || '';
+          } else if (data.qrCode) {
+            // Show QR code display
+            switchConnectTab('qr');
+            const qrImg = document.getElementById('qr-code-img');
+            const qrOverlay = document.getElementById('qr-loading-overlay');
+            qrImg.src = data.qrCode;
+            qrImg.classList.remove('blur-sm');
+            if (qrOverlay) qrOverlay.classList.add('hidden');
+          }
+        } else if (data.status === 'connecting') {
+          headerStatus.className = "flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-full text-sm text-blue-400";
+          headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connecting</span>`;
+          
+          cardLoading.classList.remove('hidden');
+          document.getElementById('loading-status-text').innerText = "Establishing WhatsApp connection...";
+        } else {
+          // Disconnected
+          headerStatus.className = "flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400";
+          headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>`;
+          
+          cardDisconnected.classList.remove('hidden');
+          // Start showing QR code since we auto-connect to show QR!
+          document.getElementById('connect-tab-qr').classList.remove('hidden');
+        }
       }
     }
 
@@ -702,6 +764,26 @@
       return code;
     }
 
+    // Tab switcher
+    function switchConnectTab(tab) {
+      const tabQr = document.getElementById('connect-tab-qr');
+      const tabPair = document.getElementById('connect-tab-pair');
+      const btnQr = document.getElementById('tab-btn-qr');
+      const btnPair = document.getElementById('tab-btn-pair');
+
+      if (tab === 'qr') {
+        tabQr.classList.remove('hidden');
+        tabPair.classList.add('hidden');
+        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
+        btnPair.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
+      } else {
+        tabQr.classList.add('hidden');
+        tabPair.classList.remove('hidden');
+        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
+        btnPair.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
+      }
+    }
+
     async function requestPairingCode() {
       const phoneInput = document.getElementById('phone-input');
       const phoneNumber = phoneInput.value.trim();
@@ -711,7 +793,10 @@
         return;
       }
 
-      updateStatusDisplay({ status: 'connecting' });
+      // Show loader
+      const headerStatus = document.getElementById('header-status');
+      headerStatus.className = "flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-full text-sm text-blue-400";
+      headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connecting</span>`;
 
       try {
         const res = await fetch('/api/connect', {
@@ -723,6 +808,8 @@
         if (!data.success) {
           showToast('Connection Failed', data.error || 'Failed to initiate pairing.', 'error');
           fetchStatus();
+        } else {
+          document.getElementById('pairing-code-box').classList.remove('hidden');
         }
       } catch (err) {
         showToast('Server Error', 'Could not reach server.', 'error');
@@ -750,6 +837,7 @@
         const data = await res.json();
         if (data.success) {
           showToast('Reset Complete', 'Connection reset successfully.', 'success');
+          document.getElementById('pairing-code-box').classList.add('hidden');
           fetchStatus();
         }
       } catch (err) {
@@ -783,7 +871,7 @@
 
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-20 text-gray-500 space-y-2">
+          <div class="flex flex-col items-center justify-center py-20 text-gray-550 space-y-2">
             <i class="fa-solid fa-magnifying-glass text-2xl opacity-40"></i>
             <p class="text-xs">No matching messages found.</p>
           </div>
@@ -796,7 +884,7 @@
         if (m.reply_status === 'replied') {
           statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-500/10 text-green-450 border border-green-550/20"><i class="fa-solid fa-circle-check mr-0.5"></i> Replied</span>`;
         } else if (m.reply_status === 'pending') {
-          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-450 border border-amber-550/20 animate-pulse"><i class="fa-solid fa-hourglass-start mr-0.5"></i> Pending</span>`;
+          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-455 border border-amber-555/20 animate-pulse"><i class="fa-solid fa-hourglass-start mr-0.5"></i> Pending</span>`;
         } else {
           statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-750 text-gray-400 border border-gray-650"><i class="fa-solid fa-ban mr-0.5"></i> Skipped</span>`;
         }
@@ -938,7 +1026,7 @@
       
       if (meetingAlerts.length === 0) {
         container.innerHTML = `
-          <div class="col-span-2 text-center py-10 text-gray-500 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
+          <div class="col-span-2 text-center py-10 text-gray-505 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
             <i class="fa-regular fa-calendar text-3xl"></i>
             <p class="text-xs">No active meeting alerts. Safe scheduling!</p>
           </div>
@@ -1029,7 +1117,7 @@
 
       if (blockedContacts.length === 0) {
         container.innerHTML = `
-          <p class="text-[11px] text-gray-500 text-center py-4">No blocked contacts yet.</p>
+          <p class="text-[11px] text-gray-505 text-center py-4">No blocked contacts yet.</p>
         `;
         return;
       }
