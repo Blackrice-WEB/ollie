@@ -1,6 +1,8 @@
+// Import log interceptor at the very top of the entry point
+const loggerUtil = require('./logger');
+
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
@@ -19,42 +21,15 @@ app.use(cors({
 
 app.use(express.json());
 
-// Serve index.html and static assets from the root directory directly (Flat Structure)
+// Serve static dashboard files from the root directory
 app.use(express.static(path.join(__dirname, '.')));
-
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  },
-  transports: ['websocket', 'polling'] // Explicitly enable websocket transports first
-});
-
-io.on('connection', (socket) => {
-  console.log(`Dashboard client connected: ${socket.id}`);
-  
-  // Immediately send the full WhatsApp status, QR code, and pairing code upon client connection
-  const currentStatus = whatsapp.getStatus();
-  socket.emit('status_update', currentStatus);
-  
-  if (currentStatus.qrCode) {
-    socket.emit('qr_code', { qr: currentStatus.qrCode });
-  }
-  if (currentStatus.pairingCode) {
-    socket.emit('pairing_code', { code: currentStatus.pairingCode });
-  }
-
-  socket.on('disconnect', () => {
-    console.log(`Dashboard client disconnected: ${socket.id}`);
-  });
-});
 
 async function initializeApp() {
   console.log('Initializing database and default settings...');
   await db.initSettings();
   
   console.log('Initializing WhatsApp module...');
-  await whatsapp.init(io);
+  await whatsapp.init();
 }
 initializeApp().catch(err => {
   console.error('Failed to initialize application:', err.message);
@@ -63,6 +38,15 @@ initializeApp().catch(err => {
 // ==========================================
 // API ROUTES
 // ==========================================
+
+// Live System Logs Endpoint for debugging pairing/connection issues
+app.get('/api/logs', (req, res) => {
+  try {
+    res.json({ success: true, logs: loggerUtil.getLogs() });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 app.get('/api/status', (req, res) => {
   try {
@@ -80,10 +64,11 @@ app.post('/api/connect', async (req, res) => {
   }
 
   try {
-    console.log(`Dashboard requested pairing code for phone number: ${phoneNumber}`);
-    whatsapp.connectWhatsApp(phoneNumber);
-    res.json({ success: true, message: 'Pairing process initiated. Look for the code via Socket.IO.' });
+    console.log(`[HTTP API] Requesting direct pairing code for: ${phoneNumber}`);
+    const code = await whatsapp.getPairingCodeDirect(phoneNumber);
+    res.json({ success: true, code });
   } catch (err) {
+    console.error('[HTTP API] Direct pairing code error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -124,7 +109,6 @@ app.post('/api/alerts/:id/read', async (req, res) => {
   try {
     const alert = await db.markAlertAsRead(id);
     if (alert) {
-      io.emit('alert_marked_read', { id });
       res.json({ success: true, alert });
     } else {
       res.status(404).json({ success: false, error: 'Alert not found' });
@@ -138,7 +122,6 @@ app.post('/api/alerts/read-all', async (req, res) => {
   try {
     const success = await db.markAllAlertsAsRead();
     if (success) {
-      io.emit('all_alerts_read');
       res.json({ success: true, message: 'All alerts marked as read' });
     } else {
       res.status(500).json({ success: false, error: 'Failed to mark all as read' });
@@ -230,7 +213,6 @@ app.post('/api/send', async (req, res) => {
   }
 });
 
-// Single-page fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
