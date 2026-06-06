@@ -7,6 +7,7 @@ const {
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
+const QRCode = require('qrcode');
 const db = require('./db');
 const ai = require('./ai');
 
@@ -15,9 +16,10 @@ const logger = pino({ level: 'silent' });
 
 let sock = null;
 let io = null;
-let connectionStatus = 'disconnected';
+let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'connected', 'pairing'
 let pairingCode = null;
 let currentPhoneNumber = null;
+let qrCodeImage = null; // Store current QR code base64 image
 
 const activeTimers = new Map();
 
@@ -35,7 +37,8 @@ async function init(socketIo) {
     console.log('WhatsApp credentials loaded from Supabase. Auto-connecting...');
     connectWhatsApp();
   } else {
-    console.log('No WhatsApp session found in database. Waiting for pairing via dashboard...');
+    console.log('No WhatsApp session found in database. Initializing default QR code connection...');
+    connectWhatsApp(); // Start connection immediately to generate QR codes!
   }
 }
 
@@ -74,11 +77,11 @@ async function uploadSessionToDatabase() {
 }
 
 /**
- * Main WhatsApp connection handler
+ * Main WhatsApp connection handler (Knight Bot MD Formula)
  */
 async function connectWhatsApp(phoneNumber = null) {
   try {
-    // 1. Close and clean up any existing socket to prevent parallel conflicts
+    // Close and clean up any existing socket to prevent parallel conflicts
     if (sock) {
       console.log('Closing existing WhatsApp socket before reconnecting...');
       try {
@@ -94,6 +97,7 @@ async function connectWhatsApp(phoneNumber = null) {
 
     connectionStatus = 'connecting';
     pairingCode = null;
+    qrCodeImage = null;
     currentPhoneNumber = phoneNumber;
     broadcastStatus();
 
@@ -101,9 +105,9 @@ async function connectWhatsApp(phoneNumber = null) {
 
     sock = makeWASocket({
       auth: state,
-      printQRInTerminal: false,
+      printQRInTerminal: false, // Disables terminal QR codes
       logger: logger,
-      browser: ['Ubuntu', 'Chrome', '20.0.04'] // Standard browser signature for pairing code stability
+      browser: ['Ubuntu', 'Chrome', '20.0.04']
     });
 
     sock.ev.on('creds.update', async () => {
@@ -112,7 +116,26 @@ async function connectWhatsApp(phoneNumber = null) {
     });
 
     sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect } = update;
+      const { connection, lastDisconnect, qr } = update;
+
+      // Handle QR Code Generation (Knight Bot MD style)
+      if (qr) {
+        try {
+          // Convert QR code to base64 image data URL
+          const qrImage = await QRCode.toDataURL(qr);
+          qrCodeImage = qrImage;
+          connectionStatus = 'pairing'; // Set to pairing to indicate linking mode
+          
+          console.log('New WhatsApp QR code generated. Pushing to dashboard...');
+          
+          if (io) {
+            io.emit('qr_code', { qr: qrCodeImage });
+          }
+          broadcastStatus();
+        } catch (qrErr) {
+          console.error('Error converting QR code to image:', qrErr.message);
+        }
+      }
 
       if (connection === 'connecting') {
         connectionStatus = 'connecting';
@@ -122,6 +145,7 @@ async function connectWhatsApp(phoneNumber = null) {
       if (connection === 'open') {
         connectionStatus = 'connected';
         pairingCode = null;
+        qrCodeImage = null;
         console.log('WhatsApp connection successfully opened for Ollie!');
         await uploadSessionToDatabase();
         broadcastStatus();
@@ -133,6 +157,7 @@ async function connectWhatsApp(phoneNumber = null) {
         
         connectionStatus = 'disconnected';
         pairingCode = null;
+        qrCodeImage = null;
         broadcastStatus();
 
         if (shouldReconnect) {
@@ -143,6 +168,7 @@ async function connectWhatsApp(phoneNumber = null) {
       }
     });
 
+    // Handle Phone Number Pairing Code (if requested by user)
     if (phoneNumber && !sock.authState.creds.registered) {
       connectionStatus = 'pairing';
       broadcastStatus();
@@ -154,6 +180,7 @@ async function connectWhatsApp(phoneNumber = null) {
       try {
         const code = await sock.requestPairingCode(sanitizedPhone);
         pairingCode = code;
+        qrCodeImage = null; // Clear QR code since we are using pairing code
         console.log(`Generated pairing code for Oliver: ${pairingCode}`);
         
         if (io) {
@@ -432,6 +459,7 @@ function broadcastStatus() {
     io.emit('status_update', {
       status: connectionStatus,
       pairingCode: pairingCode,
+      qrCode: qrCodeImage, // Broadcast QR code base64 image
       phoneNumber: currentPhoneNumber
     });
   }
@@ -488,6 +516,7 @@ async function disconnectWhatsApp() {
   try {
     connectionStatus = 'disconnected';
     pairingCode = null;
+    qrCodeImage = null;
     currentPhoneNumber = null;
 
     if (sock) {
@@ -525,6 +554,7 @@ function getStatus() {
   return {
     status: connectionStatus,
     pairingCode,
+    qrCode: qrCodeImage,
     phoneNumber: currentPhoneNumber
   };
 }
