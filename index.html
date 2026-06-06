@@ -11,35 +11,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;750&display=swap" rel="stylesheet">
-  <!-- Socket.IO Client -->
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            wa: {
-              green: '#25D366',
-              teal: '#128C7E',
-              darkteal: '#075E54',
-              lightgreen: '#DCF8C6',
-              chatbg: '#0b141a',
-              cardbg: '#111b21',
-              border: '#222e35',
-              bg: '#0c1317'
-            }
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            display: ['"Space Grotesk"', 'sans-serif'],
-            mono: ['"Fira Code"', 'monospace']
-          }
-        }
-      }
-    }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;755&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
@@ -132,7 +104,7 @@
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Replies Sent</span>
           <h3 id="stat-replied" class="text-2xl font-black font-display text-wa-green">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-wa-green/10 group-hover:text-wa-green transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-wa-green/10 group-hover:text-wa-green transition-colors">
           <i class="fa-solid fa-paper-plane text-lg"></i>
         </div>
       </div>
@@ -142,7 +114,7 @@
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Active Countdowns</span>
           <h3 id="stat-pending" class="text-2xl font-black font-display text-amber-400">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-colors">
           <i class="fa-solid fa-stopwatch text-lg"></i>
         </div>
       </div>
@@ -152,7 +124,7 @@
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Meeting Alerts</span>
           <h3 id="stat-alerts" class="text-2xl font-black font-display text-yellow-400">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-yellow-500/10 group-hover:text-yellow-405 transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-yellow-500/10 group-hover:text-yellow-405 transition-colors">
           <i class="fa-solid fa-calendar-check text-lg"></i>
         </div>
       </div>
@@ -197,7 +169,7 @@
                   </div>
                 </div>
               </div>
-              <p class="text-[10px] text-gray-500">QR code refreshes automatically for security.</p>
+              <p class="text-[10px] text-gray-550">QR code refreshes automatically for security.</p>
             </div>
 
             <!-- Tab 2: Pairing Code -->
@@ -211,12 +183,15 @@
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 text-xs">
                     <i class="fa-solid fa-phone"></i>
                   </span>
-                  <input type="text" id="phone-input" value="+254705760434" placeholder="e.g. +254705760434" 
+                  <input type="text" id="phone-input" value="254705760434" placeholder="e.g. 254705760434" 
                     class="w-full bg-wa-bg border border-wa-border rounded-xl py-2.5 pl-9 pr-4 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green focus:ring-1 focus:ring-wa-green transition-all">
                 </div>
               </div>
-              <button onclick="requestPairingCode()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
-                <i class="fa-solid fa-key"></i> Get Pairing Code
+              
+              <!-- Direct Get Pairing Code Button -->
+              <button id="get-code-btn" onclick="requestPairingCodeDirect()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                <span id="btn-spinner" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
+                <span id="btn-text"><i class="fa-solid fa-key mr-1"></i> Get Pairing Code</span>
               </button>
 
               <!-- Pairing Code Box -->
@@ -237,10 +212,10 @@
                   </button>
                 </div>
 
-                <div class="text-[10px] text-gray-400 text-left space-y-1 bg-wa-cardbg/50 p-2.5 rounded border border-wa-border">
-                  <span class="font-bold text-white block mb-0.5"><i class="fa-solid fa-circle-info text-wa-green"></i> How to enter on your phone:</span>
-                  1. Open WhatsApp on your phone.<br>
-                  2. Go to <strong class="text-white">Settings</strong> -> <strong class="text-white">Linked Devices</strong>.<br>
+                <div class="text-[10px] text-gray-450 text-left space-y-1.5 bg-wa-cardbg/50 p-2.5 rounded border border-wa-border leading-relaxed">
+                  <span class="font-bold text-white block mb-0.5"><i class="fa-solid fa-circle-info text-wa-green"></i> How to link on your phone:</span>
+                  1. Open <strong class="text-white">WhatsApp</strong> on your phone.<br>
+                  2. Tap <strong class="text-white">Settings</strong> -> <strong class="text-white">Linked Devices</strong>.<br>
                   3. Tap <strong class="text-white">Link a Device</strong>.<br>
                   4. Select <strong class="text-white">Link with phone number instead</strong> at the bottom.<br>
                   5. Enter this 8-character code.
@@ -373,7 +348,7 @@
               <textarea id="setting-ai-prompt" rows="3" 
                 class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
                 placeholder="Example: You are friendly, casual, and use emojis..."></textarea>
-              <button onclick="saveAiPrompt()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2 rounded-xl transition-all shadow-md">
+              <button onclick="saveAiPrompt()" class="w-full bg-purple-600 hover:bg-purple-555 text-white font-bold text-xs py-2 rounded-xl transition-all shadow-md">
                 Save Personality Prompt
               </button>
             </div>
@@ -461,7 +436,7 @@
             
             <div class="flex items-center gap-2 max-w-xs w-full">
               <div class="relative w-full">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-505 text-xs">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-550 text-xs">
                   <i class="fa-solid fa-magnifying-glass"></i>
                 </span>
                 <input type="text" id="message-search" oninput="filterMessages()" placeholder="Search sender or text..." 
@@ -518,13 +493,37 @@
           </div>
         </section>
 
+        <!-- DEBUGGING & LIVE SYSTEM LOGS TERMINAL (Collapsible) -->
+        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md overflow-hidden">
+          <button onclick="toggleLogsTerminal()" class="w-full flex items-center justify-between text-left focus:outline-none">
+            <div class="flex items-center gap-2 text-xs font-bold text-gray-450 uppercase tracking-wider">
+              <i class="fa-solid fa-bug text-red-500"></i> Live System Logs (Render Console Debug)
+            </div>
+            <i id="logs-arrow-icon" class="fa-solid fa-chevron-down text-gray-500 transition-transform"></i>
+          </button>
+          
+          <div id="logs-terminal-content" class="hidden mt-4 space-y-3">
+            <p class="text-xs text-gray-400 leading-relaxed">
+              If the pairing code isn't prompting your phone, this terminal will show the exact error message from WhatsApp (e.g., rate limits, invalid signatures, or database errors).
+            </p>
+            <div id="logs-terminal-screen" class="bg-black rounded-xl p-4 border border-wa-border font-mono text-[11px] text-red-400 h-60 overflow-y-auto custom-scrollbar space-y-1 shadow-inner">
+              <!-- Render live console logs dynamically -->
+              <div class="text-gray-500 text-center py-24">No system logs collected yet. Generating...</div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-gray-500">
+              <span>Auto-refreshing every 3 seconds</span>
+              <button onclick="clearLogsOnScreen()" class="hover:text-white transition-colors"><i class="fa-solid fa-trash mr-1"></i> Clear Terminal</button>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
 
   </main>
 
   <!-- Footer -->
-  <footer class="bg-wa-cardbg border-t border-wa-border py-4 px-6 text-center text-xs text-gray-500 mt-12">
+  <footer class="bg-wa-cardbg border-t border-wa-border py-4 px-6 text-center text-xs text-gray-505 mt-12">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
       <p>&copy; 2026 Ollie AI Auto-Reply Bot. Created for Oliver. Powered by Groq Llama-3.3-70b & Supabase.</p>
       <p class="flex items-center gap-2">
@@ -541,117 +540,62 @@
     let meetingAlerts = [];
     let settings = {};
     let activeTimersList = [];
-    let socket = null;
+    
+    let pollIntervalId = null;
+    let logsIntervalId = null;
 
-    function initSocket() {
-      // Force WebSockets directly to bypass Render's long-polling block
-      socket = io({
-        transports: ['websocket']
-      });
+    // Start Polling Status and Logs
+    function startPolling() {
+      fetchStatus();
+      fetchLogs();
+      
+      pollIntervalId = setInterval(fetchStatus, 3000);
+      logsIntervalId = setInterval(fetchLogs, 3000);
+      showToast('System Online', 'Real-time HTTP Sync active.', 'success');
+    }
 
-      socket.on('connect', () => {
-        showToast('System Online', 'Real-time sync established.', 'success');
-      });
-
-      socket.on('disconnect', () => {
-        updateStatusDisplay({ status: 'disconnected', pairingCode: null });
-        showToast('System Offline', 'Lost connection to backend.', 'error');
-      });
-
-      socket.on('status_update', (data) => {
-        updateStatusDisplay(data);
-      });
-
-      // Listen to the raw QR code base64 image from the backend
-      socket.on('qr_code', (data) => {
-        if (data.qr) {
-          const qrImg = document.getElementById('qr-code-img');
-          const qrOverlay = document.getElementById('qr-loading-overlay');
-          qrImg.src = data.qr;
-          qrImg.classList.remove('blur-sm');
-          if (qrOverlay) qrOverlay.classList.add('hidden');
-        }
-      });
-
-      socket.on('pairing_code', (data) => {
-        showToast('Pairing Code Ready', 'Enter it in your phone.', 'info');
-        updateStatusDisplay({ status: 'pairing', pairingCode: data.code });
-      });
-
-      socket.on('new_message', (msg) => {
-        messages.unshift(msg);
-        renderMessages();
-        updateStats();
-        
-        showToast(
-          `Message from ${msg.sender_name}`,
-          `"${msg.message_text.substring(0, 40)}..."`,
-          msg.is_meeting ? 'warning' : 'info'
-        );
-      });
-
-      socket.on('reply_status_update', (data) => {
-        const msg = messages.find(m => m.id === data.id);
-        if (msg) {
-          msg.reply_status = data.status;
-          msg.reply_text = data.reply_text;
-          if (data.profile && msg.profile) {
-            msg.profile = data.profile;
-          }
-          renderMessages();
-          updateStats();
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data.success) {
+          updateStatusDisplay(data);
           
-          if (data.status === 'replied') {
-            showToast('Auto-Reply Sent', `To ${msg.sender_name}: "${data.reply_text.substring(0, 40)}..."`, 'success');
+          if (data.activeTimers) {
+            activeTimersList = data.activeTimers;
+            renderActiveTimers();
           }
-        } else {
-          fetchMessages();
+          if (data.thinkingLogs) {
+            renderThinkingLogsList(data.thinkingLogs);
+          }
+          
+          updateStats();
         }
-      });
+      } catch (err) {
+        console.error('Status Polling error:', err);
+      }
+    }
 
-      socket.on('timers_update', (timers) => {
-        activeTimersList = timers;
-        renderActiveTimers();
-        updateStats();
-      });
-
-      socket.on('ollie_thinking', (log) => {
-        renderThinkingLog(log);
-      });
-
-      socket.on('meeting_alert', (alert) => {
-        meetingAlerts.unshift(alert);
-        renderAlerts();
-        updateStats();
-        showToast(
-          '⚠️ Meeting Alert Detected!',
-          `${alert.sender} scheduled a discussion: "${alert.message.substring(0, 40)}..."`,
-          'warning'
-        );
-      });
-
-      socket.on('alert_marked_read', (data) => {
-        meetingAlerts = meetingAlerts.filter(a => String(a.id) !== String(data.id));
-        renderAlerts();
-        updateStats();
-      });
-
-      socket.on('all_alerts_read', () => {
-        meetingAlerts = [];
-        renderAlerts();
-        updateStats();
-        showToast('Alerts Dismissed', 'All meeting alerts marked as read.', 'success');
-      });
+    // Fetch Node.js System Logs from backend
+    async function fetchLogs() {
+      try {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        if (data.success && data.logs) {
+          renderLogsTerminalScreen(data.logs);
+        }
+      } catch (err) {
+        console.error('Logs Polling error:', err);
+      }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      initSocket();
+      startPolling();
       fetchAllData();
     });
 
     async function fetchAllData() {
       await Promise.all([
-        fetchStatus(),
         fetchMessages(),
         fetchAlerts(),
         fetchBlocked(),
@@ -696,15 +640,46 @@
       setTimeout(() => toast.remove(), 6000);
     }
 
-    async function fetchStatus() {
+    // Direct HTTP Connect Request
+    async function requestPairingCodeDirect() {
+      const phoneInput = document.getElementById('phone-input');
+      const phoneNumber = phoneInput.value.trim();
+      
+      if (!phoneNumber) {
+        showToast('Input Required', 'Please enter a valid phone number with country code.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('get-code-btn');
+      const spinner = document.getElementById('btn-spinner');
+      const btnText = document.getElementById('btn-text');
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      btnText.innerText = 'Connecting and generating...';
+
       try {
-        const res = await fetch('/api/status');
+        const res = await fetch('/api/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber })
+        });
         const data = await res.json();
-        if (data.success) {
-          updateStatusDisplay(data);
+        
+        if (data.success && data.code) {
+          showToast('Pairing Code Ready', 'Enter it in your phone.', 'success');
+          
+          document.getElementById('pairing-code-box').classList.remove('hidden');
+          document.getElementById('pairing-code-display').innerText = data.code;
+          document.getElementById('pairing-phone-label').innerText = phoneNumber;
+        } else {
+          showToast('Connection Failed', data.error || 'Failed to generate pairing code.', 'error');
         }
       } catch (err) {
-        console.error(err);
+        showToast('Server Error', 'Could not reach server. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        btnText.innerHTML = '<i class="fa-solid fa-key mr-1"></i> Get Pairing Code';
       }
     }
 
@@ -717,7 +692,6 @@
       const cardConnected = document.getElementById('conn-state-connected');
       const cardLoading = document.getElementById('conn-state-loading');
 
-      // If connected, hide setup options
       if (data.status === 'connected') {
         cardDisconnected.classList.add('hidden');
         cardPairing.classList.add('hidden');
@@ -735,13 +709,11 @@
           headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Pairing...</span>`;
           
           if (data.pairingCode) {
-            // Show pairing code display
             switchConnectTab('pair');
             document.getElementById('pairing-code-box').classList.remove('hidden');
-            document.getElementById('pairing-code-display').innerText = formatPairingCode(data.pairingCode);
+            document.getElementById('pairing-code-display').innerText = data.pairingCode;
             document.getElementById('pairing-phone-label').innerText = data.phoneNumber || '';
           } else if (data.qrCode) {
-            // Show QR code display
             switchConnectTab('qr');
             const qrImg = document.getElementById('qr-code-img');
             const qrOverlay = document.getElementById('qr-loading-overlay');
@@ -756,74 +728,18 @@
           cardLoading.classList.remove('hidden');
           document.getElementById('loading-status-text').innerText = "Establishing WhatsApp connection...";
         } else {
-          // Disconnected
           headerStatus.className = "flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400";
           headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>`;
           
           cardDisconnected.classList.remove('hidden');
-          document.getElementById('connect-tab-qr').classList.remove('hidden');
+          if (data.qrCode) {
+            const qrImg = document.getElementById('qr-code-img');
+            const qrOverlay = document.getElementById('qr-loading-overlay');
+            qrImg.src = data.qrCode;
+            qrImg.classList.remove('blur-sm');
+            if (qrOverlay) qrOverlay.classList.add('hidden');
+          }
         }
-      }
-    }
-
-    function formatPairingCode(code) {
-      if (!code) return '--------';
-      if (code.length === 8) {
-        return `${code.substring(0, 4)}-${code.substring(4)}`;
-      }
-      return code;
-    }
-
-    // Tab switcher
-    function switchConnectTab(tab) {
-      const tabQr = document.getElementById('connect-tab-qr');
-      const tabPair = document.getElementById('connect-tab-pair');
-      const btnQr = document.getElementById('tab-btn-qr');
-      const btnPair = document.getElementById('tab-btn-pair');
-
-      if (tab === 'qr') {
-        tabQr.classList.remove('hidden');
-        tabPair.classList.add('hidden');
-        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
-        btnPair.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
-      } else {
-        tabQr.classList.add('hidden');
-        tabPair.classList.remove('hidden');
-        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
-        btnPair.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
-      }
-    }
-
-    async function requestPairingCode() {
-      const phoneInput = document.getElementById('phone-input');
-      const phoneNumber = phoneInput.value.trim();
-      
-      if (!phoneNumber) {
-        showToast('Input Required', 'Please enter a valid phone number with country code.', 'error');
-        return;
-      }
-
-      // Show loader
-      const headerStatus = document.getElementById('header-status');
-      headerStatus.className = "flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-full text-sm text-blue-400";
-      headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connecting</span>`;
-
-      try {
-        const res = await fetch('/api/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber })
-        });
-        const data = await res.json();
-        if (!data.success) {
-          showToast('Connection Failed', data.error || 'Failed to initiate pairing.', 'error');
-          fetchStatus();
-        } else {
-          document.getElementById('pairing-code-box').classList.remove('hidden');
-        }
-      } catch (err) {
-        showToast('Server Error', 'Could not reach server.', 'error');
-        fetchStatus();
       }
     }
 
@@ -834,6 +750,7 @@
         const data = await res.json();
         if (data.success) {
           showToast('Disconnected', 'WhatsApp session logged out.', 'success');
+          document.getElementById('pairing-code-box').classList.add('hidden');
           fetchAllData();
         }
       } catch (err) {
@@ -855,7 +772,6 @@
       }
     }
 
-    // Copy Pairing Code to Clipboard
     function copyPairingCode() {
       const codeText = document.getElementById('pairing-code-display').innerText.trim();
       if (codeText === '--------') return;
@@ -863,7 +779,6 @@
       navigator.clipboard.writeText(codeText).then(() => {
         showToast('Copied!', 'Pairing code copied to clipboard.', 'success');
         
-        // Visual button feedback
         const copyIcon = document.getElementById('copy-btn-icon');
         copyIcon.className = "fa-solid fa-check";
         setTimeout(() => {
@@ -872,6 +787,26 @@
       }).catch(err => {
         console.error('Could not copy code:', err);
       });
+    }
+
+    // Tab switcher
+    function switchConnectTab(tab) {
+      const tabQr = document.getElementById('connect-tab-qr');
+      const tabPair = document.getElementById('connect-tab-pair');
+      const btnQr = document.getElementById('tab-btn-qr');
+      const btnPin = document.getElementById('tab-btn-pair');
+
+      if (tab === 'qr') {
+        tabQr.classList.remove('hidden');
+        tabPair.classList.add('hidden');
+        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
+        btnPin.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
+      } else {
+        tabQr.classList.add('hidden');
+        tabPair.classList.remove('hidden');
+        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
+        btnPin.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
+      }
     }
 
     async function fetchMessages() {
@@ -900,7 +835,7 @@
 
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-20 text-gray-500 space-y-2">
+          <div class="flex flex-col items-center justify-center py-20 text-gray-550 space-y-2">
             <i class="fa-solid fa-magnifying-glass text-2xl opacity-40"></i>
             <p class="text-xs">No matching messages found.</p>
           </div>
@@ -911,7 +846,7 @@
       container.innerHTML = filtered.map(m => {
         let statusPill = '';
         if (m.reply_status === 'replied') {
-          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-500/10 text-green-450 border border-green-550/20"><i class="fa-solid fa-circle-check mr-0.5"></i> Replied</span>`;
+          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-500/10 text-green-450 border border-green-555/20"><i class="fa-solid fa-circle-check mr-0.5"></i> Replied</span>`;
         } else if (m.reply_status === 'pending') {
           statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-455 border border-amber-555/20 animate-pulse"><i class="fa-solid fa-hourglass-start mr-0.5"></i> Pending</span>`;
         } else {
@@ -936,7 +871,7 @@
                 ${vibeBadge}
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-[10px] text-gray-505">${formattedTime}</span>
+                <span class="text-[10px] text-gray-555">${formattedTime}</span>
                 ${statusPill}
               </div>
             </div>
@@ -958,7 +893,7 @@
               <button onclick="setQuickReplyTarget('${m.jid}')" title="Quick Reply" class="p-1 bg-wa-green/10 hover:bg-wa-green text-wa-green hover:text-wa-chatbg rounded-md text-xs transition-all border border-wa-green/20">
                 <i class="fa-solid fa-reply"></i>
               </button>
-              <button onclick="quickBlockContact('${m.jid}', '${m.sender_name}', ${m.is_group})" title="Block Sender" class="p-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-md text-xs transition-all border border-red-500/20">
+              <button onclick="quickBlockContact('${m.jid}', '${m.sender_name}', ${m.is_group})" title="Block Sender" class="p-1 bg-red-500/10 hover:bg-red-505 text-red-450 hover:text-white rounded-md text-xs transition-all border border-red-505/20">
                 <i class="fa-solid fa-ban"></i>
               </button>
             </div>
@@ -1010,30 +945,68 @@
 
     // Thinking Logs visualizer
     const ollieLogsContainer = document.getElementById('ollie-brain-logs');
-    function renderThinkingLog(log) {
-      if (ollieLogsContainer.querySelector('.fa-terminal')) {
-        ollieLogsContainer.innerHTML = '';
+    function renderThinkingLogsList(logs) {
+      if (!logs || logs.length === 0) return;
+      
+      ollieLogsContainer.innerHTML = '';
+
+      logs.forEach(log => {
+        let tagColor = 'text-blue-400';
+        if (log.step === 'done') tagColor = 'text-wa-green';
+        if (log.step === 'vibe_detecting') tagColor = 'text-purple-400';
+        if (log.step === 'ai_generating') tagColor = 'text-pink-400';
+        if (log.step === 'sending') tagColor = 'text-yellow-450';
+
+        const formattedTime = new Date(log.timestamp).toLocaleTimeString();
+        const logDiv = document.createElement('div');
+        logDiv.className = 'flex gap-2 items-start leading-relaxed';
+        logDiv.innerHTML = `
+          <span class="text-gray-605 shrink-0 select-none">[${formattedTime}]</span>
+          <span class="${tagColor} font-bold shrink-0">[${log.step.toUpperCase()}]</span>
+          <span class="text-gray-305">${escapeHtml(log.detail)}</span>
+        `;
+        ollieLogsContainer.appendChild(logDiv);
+      });
+    }
+
+    // Node.js console logs terminal screen renderer
+    const logsTerminalScreen = document.getElementById('logs-terminal-screen');
+    function renderLogsTerminalScreen(logs) {
+      if (!logs || logs.length === 0) return;
+      
+      logsTerminalScreen.innerHTML = '';
+
+      logs.forEach(log => {
+        let logColor = 'text-gray-350';
+        if (log.type === 'error') logColor = 'text-red-400 font-bold';
+        if (log.type === 'warn') logColor = 'text-yellow-450 font-bold';
+
+        const formattedTime = new Date(log.timestamp).toLocaleTimeString();
+        const logDiv = document.createElement('div');
+        logDiv.className = `flex gap-2 items-start leading-relaxed ${logColor}`;
+        logDiv.innerHTML = `
+          <span class="text-gray-600 shrink-0 select-none">[${formattedTime}]</span>
+          <span>${escapeHtml(log.message)}</span>
+        `;
+        logsTerminalScreen.appendChild(logDiv);
+      });
+    }
+
+    function toggleLogsTerminal() {
+      const content = document.getElementById('logs-terminal-content');
+      const arrow = document.getElementById('logs-arrow-icon');
+      
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
       }
+    }
 
-      let tagColor = 'text-blue-400';
-      if (log.step === 'done') tagColor = 'text-wa-green';
-      if (log.step === 'vibe_detecting') tagColor = 'text-purple-400';
-      if (log.step === 'ai_generating') tagColor = 'text-pink-400';
-      if (log.step === 'sending') tagColor = 'text-yellow-450';
-
-      const formattedTime = new Date(log.timestamp).toLocaleTimeString();
-      const logDiv = document.createElement('div');
-      logDiv.className = 'flex gap-2 items-start leading-relaxed';
-      logDiv.innerHTML = `
-        <span class="text-gray-650 shrink-0 select-none">[${formattedTime}]</span>
-        <span class="${tagColor} font-bold shrink-0">[${log.step.toUpperCase()}]</span>
-        <span class="text-gray-305">${escapeHtml(log.detail)}</span>
-      `;
-      ollieLogsContainer.insertBefore(logDiv, ollieLogsContainer.firstChild);
-
-      if (ollieLogsContainer.children.length > 50) {
-        ollieLogsContainer.removeChild(ollieLogsContainer.lastChild);
-      }
+    function clearLogsOnScreen() {
+      logsTerminalScreen.innerHTML = '<div class="text-gray-500 text-center py-24">Terminal cleared. Waiting for new logs...</div>';
     }
 
     // Meeting Alerts
@@ -1055,7 +1028,7 @@
       
       if (meetingAlerts.length === 0) {
         container.innerHTML = `
-          <div class="col-span-2 text-center py-10 text-gray-550 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
+          <div class="col-span-2 text-center py-10 text-gray-505 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
             <i class="fa-regular fa-calendar text-3xl"></i>
             <p class="text-xs">No active meeting alerts. Safe scheduling!</p>
           </div>
@@ -1081,7 +1054,7 @@
                 <span class="bg-yellow-500/10 px-1.5 py-0.5 rounded">
                   <i class="fa-solid fa-clock"></i> Time: ${escapeHtml(a.detected_time || 'Detected')}
                 </span>
-                <span class="bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                <span class="bg-yellow-505/10 px-1.5 py-0.5 rounded">
                   <i class="fa-solid fa-calendar"></i> Date: ${escapeHtml(a.detected_date || 'Tomorrow')}
                 </span>
               </div>
@@ -1140,6 +1113,7 @@
       }
     }
 
+    // Render Blocked Contacts
     function renderBlocked() {
       const container = document.getElementById('blocked-list');
       document.getElementById('blocked-count').innerText = blockedContacts.length;
