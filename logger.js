@@ -1,4 +1,3 @@
-
 const logs = [];
 
 // Intercept console.log
