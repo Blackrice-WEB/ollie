@@ -32,7 +32,17 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
   console.log(`Dashboard client connected: ${socket.id}`);
-  socket.emit('status_update', whatsapp.getStatus());
+  
+  // Immediately send the full WhatsApp status, QR code, and pairing code upon client connection
+  const currentStatus = whatsapp.getStatus();
+  socket.emit('status_update', currentStatus);
+  
+  if (currentStatus.qrCode) {
+    socket.emit('qr_code', { qr: currentStatus.qrCode });
+  }
+  if (currentStatus.pairingCode) {
+    socket.emit('pairing_code', { code: currentStatus.pairingCode });
+  }
 
   socket.on('disconnect', () => {
     console.log(`Dashboard client disconnected: ${socket.id}`);
