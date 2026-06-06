@@ -24,7 +24,7 @@ let qrCodeImage = null; // Store current QR code base64 image
 const activeTimers = new Map();
 
 /**
- * Initialize WhatsApp connection module
+ * Initialize WhatsApp connection module with Socket.IO
  */
 async function init(socketIo) {
   io = socketIo;
@@ -77,11 +77,11 @@ async function uploadSessionToDatabase() {
 }
 
 /**
- * Main WhatsApp connection handler (Knight Bot MD Formula)
+ * Main WhatsApp connection handler (Knight Bot MD / Atlas MD Formula)
  */
 async function connectWhatsApp(phoneNumber = null) {
   try {
-    // Close and clean up any existing socket to prevent parallel conflicts
+    // 1. Close and clean up any existing socket to prevent parallel conflicts
     if (sock) {
       console.log('Closing existing WhatsApp socket before reconnecting...');
       try {
@@ -103,11 +103,12 @@ async function connectWhatsApp(phoneNumber = null) {
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
+    // Knight Bot MD Formula: Use 'Chrome (Linux)' as the browser signature for pairing code stability
     sock = makeWASocket({
       auth: state,
-      printQRInTerminal: false, // Disables terminal QR codes
+      printQRInTerminal: false,
       logger: logger,
-      browser: ['Ubuntu', 'Chrome', '20.0.04']
+      browser: ['Chrome (Linux)', '', ''] 
     });
 
     sock.ev.on('creds.update', async () => {
@@ -118,15 +119,14 @@ async function connectWhatsApp(phoneNumber = null) {
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // Handle QR Code Generation (Knight Bot MD style)
-      if (qr) {
+      // Handle QR Code Generation
+      if (qr && !phoneNumber) {
         try {
-          // Convert QR code to base64 image data URL
           const qrImage = await QRCode.toDataURL(qr);
           qrCodeImage = qrImage;
-          connectionStatus = 'pairing'; // Set to pairing to indicate linking mode
+          connectionStatus = 'pairing';
           
-          console.log('New WhatsApp QR code generated. Pushing to dashboard...');
+          console.log('New WhatsApp QR code generated.');
           
           if (io) {
             io.emit('qr_code', { qr: qrCodeImage });
@@ -168,12 +168,12 @@ async function connectWhatsApp(phoneNumber = null) {
       }
     });
 
-    // Handle Phone Number Pairing Code (if requested by user)
+    // Knight Bot MD Formula: Request pairing code cleanly after a small delay
     if (phoneNumber && !sock.authState.creds.registered) {
       connectionStatus = 'pairing';
       broadcastStatus();
 
-      await delay(3000);
+      await delay(3000); // Wait for socket connection to initialize
       const sanitizedPhone = phoneNumber.replace(/[^0-9]/g, '');
       console.log(`Requesting pairing code for phone: ${sanitizedPhone}...`);
       
@@ -181,7 +181,7 @@ async function connectWhatsApp(phoneNumber = null) {
         const code = await sock.requestPairingCode(sanitizedPhone);
         pairingCode = code;
         qrCodeImage = null; // Clear QR code since we are using pairing code
-        console.log(`Generated pairing code for Oliver: ${pairingCode}`);
+        console.log(`Generated pairing code: ${pairingCode}`);
         
         if (io) {
           io.emit('pairing_code', { code: pairingCode });
@@ -459,7 +459,7 @@ function broadcastStatus() {
     io.emit('status_update', {
       status: connectionStatus,
       pairingCode: pairingCode,
-      qrCode: qrCodeImage, // Broadcast QR code base64 image
+      qrCode: qrCodeImage,
       phoneNumber: currentPhoneNumber
     });
   }
