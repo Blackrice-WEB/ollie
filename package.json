@@ -1,30 +1,23 @@
 {
-  "name": "react-vite-tailwind",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "ollie-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Ollie AI WhatsApp Auto-Reply Bot with Web Dashboard",
+  "main": "index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "node index.js"
   },
   "dependencies": {
-    "clsx": "2.1.1",
-    "lucide-react": "^1.17.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "socket.io-client": "^4.8.3",
-    "tailwind-merge": "3.4.0"
+    "@whiskeysockets/baileys": "^6.6.0",
+    "@supabase/supabase-js": "^2.39.8",
+    "groq-sdk": "^0.3.0",
+    "express": "^4.18.3",
+    "socket.io": "^4.7.5",
+    "cors": "^2.8.5",
+    "pino": "^8.19.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.16.0"
   },
-  "devDependencies": {
-    "@tailwindcss/vite": "4.1.17",
-    "@types/node": "22.19.17",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.1.1",
-    "tailwindcss": "4.1.17",
-    "typescript": "5.9.3",
-    "vite": "7.3.2",
-    "vite-plugin-singlefile": "2.3.0"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
