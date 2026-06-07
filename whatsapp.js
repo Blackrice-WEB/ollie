@@ -42,9 +42,10 @@ function addThinkingLog(jid, senderName, step, detail) {
 }
 
 /**
- * Initialize WhatsApp connection module
+ * Initialize WhatsApp connection module on server startup
  */
 async function init() {
+  // 1. Download credentials from Supabase before starting Baileys
   await downloadSessionFromDatabase();
 
   const credsPath = path.join(process.cwd(), SESSION_FOLDER, 'creds.json');
@@ -92,7 +93,7 @@ async function uploadSessionToDatabase() {
 }
 
 /**
- * Main WhatsApp connection handler
+ * Main WhatsApp connection handler (Unified Single-Socket Architecture)
  */
 async function connectWhatsApp() {
   try {
@@ -117,7 +118,7 @@ async function connectWhatsApp() {
       auth: state,
       printQRInTerminal: false,
       logger: logger,
-      browser: Browsers.ubuntu('Chrome'), 
+      browser: Browsers.macOS('Chrome'), // Stable desktop signature
       defaultQueryTimeoutMs: undefined
     });
 
@@ -131,29 +132,51 @@ async function connectWhatsApp() {
 
 /**
  * Direct HTTP Pairing Code Flow (Knight Bot MD / Atlas MD Formula)
- * Ensures code is generated exactly once per request and cached safely.
+ * Closes old socket, deletes creds safely, starts a fresh socket, and requests code during the QR handshake.
+ * Completely eliminates file locks (EBUSY) and rate-limit blocks!
  */
 async function getPairingCodeDirect(phoneNumber) {
-  // If we already have an active pairing code generated for this number, return it immediately!
-  if (connectionStatus === 'pairing' && pairingCode && currentPhoneNumber === phoneNumber) {
-    console.log(`[Direct Connect] Returning cached pairing code for: ${phoneNumber}`);
-    return pairingCode;
-  }
-
   return new Promise(async (resolve, reject) => {
     try {
-      console.log(`[Direct Connect] Initiating fresh pairing code generation for: ${phoneNumber}`);
+      console.log(`[Pairing Flow] Initiating pairing code flow for: ${phoneNumber}`);
       
-      // Clean up previous sessions to start fresh
-      await cleanupSession();
+      // 1. Close the active socket to release file locks on creds.json
+      if (sock) {
+        console.log('[Pairing Flow] Closing active socket to release file locks...');
+        try {
+          sock.ev.removeAllListeners('connection.update');
+          sock.ev.removeAllListeners('creds.update');
+          sock.ev.removeAllListeners('messages.upsert');
+          sock.end();
+        } catch (e) {}
+        sock = null;
+      }
 
+      // 2. Wait for file locks to release
+      await delay(1500);
+
+      // 3. Delete old local creds.json safely (avoids EBUSY folder locks)
+      const credsPath = path.join(process.cwd(), SESSION_FOLDER, 'creds.json');
+      if (fs.existsSync(credsPath)) {
+        try {
+          fs.unlinkSync(credsPath);
+          console.log('[Pairing Flow] Safely deleted old local creds.json.');
+        } catch (e) {
+          console.warn('[Pairing Flow] Failed to delete local creds.json:', e.message);
+        }
+      }
+
+      // 4. Clear Supabase credentials
+      await db.clearAuthSession();
+
+      // 5. Start a completely fresh socket connection
       const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
       const tempSock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         logger: logger,
-        browser: Browsers.ubuntu('Chrome'),
+        browser: Browsers.macOS('Chrome'),
         defaultQueryTimeoutMs: undefined
       });
 
@@ -162,30 +185,33 @@ async function getPairingCodeDirect(phoneNumber) {
         await uploadSessionToDatabase();
       });
 
+      // 6. Listen for connection update (specifically the QR event representing ready state)
       tempSock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // When the socket is fully handshaked, WhatsApp presents the QR code.
-        // We intercept the QR code to request our pairing code instead!
+        // When the QR string is received, the socket is fully handshaked and ready to pair
         if (qr) {
           try {
             const sanitizedPhone = phoneNumber.replace(/[^0-9]/g, '');
-            console.log(`[Direct Connect] Handshake complete. Fetching pairing code...`);
+            console.log(`[Pairing Flow] Socket handshake complete. Requesting pairing code...`);
             
             const code = await tempSock.requestPairingCode(sanitizedPhone);
             const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
             
-            // Lock and cache state
+            // Promote this temporary socket to the main socket
             sock = tempSock;
             connectionStatus = 'pairing';
             pairingCode = formattedCode;
             currentPhoneNumber = phoneNumber;
             qrCodeImage = null;
 
+            // Bind the remaining listeners
             setupSocketListeners(saveCreds);
+            
+            console.log(`[Pairing Flow] Pairing code successfully generated: ${pairingCode}`);
             resolve(formattedCode);
           } catch (err) {
-            console.error('[Direct Connect] requestPairingCode failed:', err.message);
+            console.error('[Pairing Flow] requestPairingCode failed:', err.message);
             reject(err);
           }
         }
@@ -194,13 +220,13 @@ async function getPairingCodeDirect(phoneNumber) {
           connectionStatus = 'connected';
           pairingCode = null;
           qrCodeImage = null;
-          console.log('[Direct Connect] Link successful! Ollie is online.');
+          console.log('[Pairing Flow] WhatsApp linked successfully!');
           await uploadSessionToDatabase();
         }
 
         if (connection === 'close') {
           const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-          console.log('[Direct Connect] Socket closed. Reconnecting?', shouldReconnect);
+          console.log('[Pairing Flow] Socket closed. Reconnecting?', shouldReconnect);
           
           connectionStatus = 'disconnected';
           pairingCode = null;
@@ -232,7 +258,6 @@ function setupSocketListeners(saveCreds) {
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
-    // If QR code is received and we are NOT pairing via phone, render it
     if (qr && !currentPhoneNumber) {
       try {
         const qrImage = await QRCode.toDataURL(qr);
