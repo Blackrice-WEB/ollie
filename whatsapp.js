@@ -36,17 +36,15 @@ function addThinkingLog(jid, senderName, step, detail) {
     timestamp: new Date().toISOString()
   };
   ollieThinkingLogs.unshift(log);
-  // Keep last 100 logs in memory
   if (ollieThinkingLogs.length > 100) {
     ollieThinkingLogs.pop();
   }
 }
 
 /**
- * Initialize WhatsApp connection module on server startup
+ * Initialize WhatsApp connection module
  */
 async function init() {
-  // 1. Download credentials from Supabase before starting Baileys
   await downloadSessionFromDatabase();
 
   const credsPath = path.join(process.cwd(), SESSION_FOLDER, 'creds.json');
@@ -54,8 +52,8 @@ async function init() {
     console.log('WhatsApp credentials loaded from Supabase. Auto-connecting...');
     connectWhatsApp();
   } else {
-    console.log('No WhatsApp session found in database. Initializing default QR code connection...');
-    connectWhatsApp(); // Start connection immediately to generate QR codes!
+    console.log('No WhatsApp session found in database. Initializing default connection...');
+    connectWhatsApp(); 
   }
 }
 
@@ -112,7 +110,6 @@ async function connectWhatsApp() {
     connectionStatus = 'connecting';
     pairingCode = null;
     qrCodeImage = null;
-    broadcastStatusToConsole();
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
@@ -120,7 +117,7 @@ async function connectWhatsApp() {
       auth: state,
       printQRInTerminal: false,
       logger: logger,
-      browser: Browsers.ubuntu('Chrome'), // Crucial desktop signature
+      browser: Browsers.ubuntu('Chrome'), 
       defaultQueryTimeoutMs: undefined
     });
 
@@ -133,20 +130,25 @@ async function connectWhatsApp() {
 }
 
 /**
- * Direct HTTP Pairing Code Flow (Bypasses Socket.IO completely!)
- * Guaranteed to trigger the phone prompt instantly on the very first try.
+ * Direct HTTP Pairing Code Flow (Knight Bot MD / Atlas MD Formula)
+ * Ensures code is generated exactly once per request and cached safely.
  */
 async function getPairingCodeDirect(phoneNumber) {
+  // If we already have an active pairing code generated for this number, return it immediately!
+  if (connectionStatus === 'pairing' && pairingCode && currentPhoneNumber === phoneNumber) {
+    console.log(`[Direct Connect] Returning cached pairing code for: ${phoneNumber}`);
+    return pairingCode;
+  }
+
   return new Promise(async (resolve, reject) => {
     try {
-      console.log(`[Direct Connect] Initiating clean pairing code flow for: ${phoneNumber}`);
+      console.log(`[Direct Connect] Initiating fresh pairing code generation for: ${phoneNumber}`);
       
-      // 1. Clean up any old session to guarantee a completely fresh state
+      // Clean up previous sessions to start fresh
       await cleanupSession();
 
       const { state, saveCreds } = await useMultiFileAuthState(SESSION_FOLDER);
 
-      // 2. Initialize fresh socket with stable signature
       const tempSock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
@@ -160,33 +162,30 @@ async function getPairingCodeDirect(phoneNumber) {
         await uploadSessionToDatabase();
       });
 
-      // 3. Listen for connection update
       tempSock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // The socket is fully handshaked and ready for authentication when the QR event fires
+        // When the socket is fully handshaked, WhatsApp presents the QR code.
+        // We intercept the QR code to request our pairing code instead!
         if (qr) {
           try {
             const sanitizedPhone = phoneNumber.replace(/[^0-9]/g, '');
-            console.log(`[Direct Connect] Socket is ready! Requesting pairing code for phone: ${sanitizedPhone}...`);
+            console.log(`[Direct Connect] Handshake complete. Fetching pairing code...`);
             
-            // Request the pairing code
             const code = await tempSock.requestPairingCode(sanitizedPhone);
             const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
             
-            // Promote this temporary socket to the main socket
+            // Lock and cache state
             sock = tempSock;
             connectionStatus = 'pairing';
             pairingCode = formattedCode;
             currentPhoneNumber = phoneNumber;
             qrCodeImage = null;
 
-            // Bind incoming message listeners to this socket
             setupSocketListeners(saveCreds);
-
             resolve(formattedCode);
           } catch (err) {
-            console.error('[Direct Connect] Failed to request pairing code:', err.message);
+            console.error('[Direct Connect] requestPairingCode failed:', err.message);
             reject(err);
           }
         }
@@ -195,7 +194,7 @@ async function getPairingCodeDirect(phoneNumber) {
           connectionStatus = 'connected';
           pairingCode = null;
           qrCodeImage = null;
-          console.log('[Direct Connect] WhatsApp successfully linked!');
+          console.log('[Direct Connect] Link successful! Ollie is online.');
           await uploadSessionToDatabase();
         }
 
@@ -233,6 +232,7 @@ function setupSocketListeners(saveCreds) {
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
+    // If QR code is received and we are NOT pairing via phone, render it
     if (qr && !currentPhoneNumber) {
       try {
         const qrImage = await QRCode.toDataURL(qr);
@@ -481,10 +481,6 @@ function getActiveTimers() {
     });
   }
   return timersList;
-}
-
-function broadcastStatusToConsole() {
-  console.log(`[Status Update] Connection status: ${connectionStatus}, Phone: ${currentPhoneNumber}`);
 }
 
 /**
