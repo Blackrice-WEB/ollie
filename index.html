@@ -11,11 +11,11 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;755&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;750&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #05080a;
+      background-color: #030708;
       color: #e9edef;
     }
     .custom-scrollbar::-webkit-scrollbar {
@@ -23,49 +23,81 @@
       height: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #0b141a;
+      background: #090e11;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #222e35;
+      background: #1e2d35;
       border-radius: 3px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #25D366;
+      background: #10b981;
     }
-    @keyframes glow-pulse {
-      0% { box-shadow: 0 0 5px rgba(37, 211, 102, 0.2); }
-      50% { box-shadow: 0 0 20px rgba(37, 211, 102, 0.6); }
-      100% { box-shadow: 0 0 5px rgba(37, 211, 102, 0.2); }
+    
+    /* Neon Glowing Animations */
+    @keyframes glow-pulse-green {
+      0% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.45); border-color: rgba(16, 185, 129, 0.6); }
+      100% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
     }
-    .neon-glow-active {
-      animation: glow-pulse 3s infinite ease-in-out;
+    .neon-glow-emerald {
+      animation: glow-pulse-green 3s infinite ease-in-out;
     }
+
+    @keyframes glow-pulse-purple {
+      0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.45); border-color: rgba(139, 92, 246, 0.6); }
+      100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2); }
+    }
+    .neon-glow-purple {
+      animation: glow-pulse-purple 3s infinite ease-in-out;
+    }
+
     @keyframes pulse-ring {
       0% { transform: scale(0.95); opacity: 1; }
-      50% { transform: scale(1.1); opacity: 0.5; }
+      50% { transform: scale(1.15); opacity: 0.4; }
       100% { transform: scale(0.95); opacity: 1; }
     }
     .live-pulse {
       animation: pulse-ring 2s infinite ease-in-out;
     }
+
+    /* Elegant Slide-In Toasts */
+    .toast-enter {
+      animation: slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes slide-in {
+      from { transform: translateY(-100%) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    
+    /* Card Glassmorphism */
+    .glass-card {
+      background: rgba(17, 27, 33, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col custom-scrollbar overflow-x-hidden">
+<body class="min-h-screen flex flex-col custom-scrollbar overflow-x-hidden relative">
+
+  <!-- Floating Gradient Backdrops -->
+  <div class="absolute top-[-10%] left-[5%] w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="absolute bottom-[20%] right-[10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
   <!-- Toast Container -->
   <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none"></div>
 
   <!-- Top Navigation Header -->
-  <header class="bg-wa-cardbg/80 backdrop-blur-md border-b border-wa-border px-6 py-4 sticky top-0 z-40 shadow-xl">
+  <header class="glass-card border-b border-wa-border/80 px-6 py-4 sticky top-0 z-40 shadow-xl transition-all duration-300">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-11 h-11 bg-wa-green rounded-xl flex items-center justify-center text-wa-chatbg shadow-lg shadow-wa-green/20 hover:scale-105 transition-transform duration-300">
+        <div class="w-11 h-11 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-neutral-950 shadow-lg shadow-emerald-500/30 hover:scale-105 transition-transform duration-300">
           <i class="fa-solid fa-brain text-2xl"></i>
         </div>
         <div>
-          <h1 class="text-xl font-extrabold tracking-tight font-display flex items-center gap-2">
+          <h1 class="text-xl font-extrabold tracking-tight font-display flex items-center gap-2 text-white">
             Ollie AI Assistant
-            <span class="text-[10px] uppercase font-sans tracking-widest px-2 py-0.5 rounded-full bg-wa-green/10 text-wa-green border border-wa-green/20 font-black">Oliver Edition</span>
+            <span class="text-[10px] uppercase font-sans tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-black">Oliver Edition</span>
           </h1>
           <p class="text-xs text-gray-400">Llama 3.3 AI Auto-Responder & Media Dispatcher (Knight MD Formula)</p>
         </div>
@@ -73,11 +105,11 @@
       
       <!-- Connection Status -->
       <div class="flex items-center gap-4">
-        <div id="header-status" class="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400">
+        <div id="header-status" class="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3.5 py-1.5 rounded-full text-sm text-red-400 shadow-inner">
           <span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span>
           <span class="font-bold text-xs uppercase tracking-wider">Disconnected</span>
         </div>
-        <button onclick="scrollToConnect()" class="text-xs font-bold bg-wa-green hover:bg-wa-green/90 text-wa-chatbg px-4 py-2.5 rounded-xl transition-all shadow-md hover:shadow-wa-green/20 flex items-center gap-1.5">
+        <button onclick="scrollToConnect()" class="text-xs font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-neutral-950 px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-500/15 hover:scale-105 hover:shadow-emerald-500/25 flex items-center gap-1.5 font-display">
           <i class="fa-solid fa-link"></i> Link Device
         </button>
       </div>
@@ -85,46 +117,46 @@
   </header>
 
   <!-- Main Content Wrapper -->
-  <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 space-y-6">
+  <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 space-y-6 relative z-10">
 
     <!-- 1. STATS BAR -->
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+      <div class="glass-card border border-wa-border rounded-2xl p-5 shadow-sm hover:border-emerald-500/30 hover:scale-[1.02] transition-all duration-300 flex items-center justify-between group">
         <div class="space-y-1">
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Messages</span>
           <h3 id="stat-total" class="text-2xl font-black font-display text-white">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-wa-green/10 group-hover:text-wa-green transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-450 group-hover:bg-emerald-500/10 group-hover:text-emerald-400 transition-all">
           <i class="fa-solid fa-comments text-lg"></i>
         </div>
       </div>
 
-      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+      <div class="glass-card border border-wa-border rounded-2xl p-5 shadow-sm hover:border-emerald-500/30 hover:scale-[1.02] transition-all duration-300 flex items-center justify-between group">
         <div class="space-y-1">
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Replies Sent</span>
-          <h3 id="stat-replied" class="text-2xl font-black font-display text-wa-green">0</h3>
+          <h3 id="stat-replied" class="text-2xl font-black font-display text-emerald-400">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-wa-green/10 group-hover:text-wa-green transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-emerald-500/10 group-hover:text-emerald-400 transition-all">
           <i class="fa-solid fa-paper-plane text-lg"></i>
         </div>
       </div>
 
-      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+      <div class="glass-card border border-wa-border rounded-2xl p-5 shadow-sm hover:border-emerald-500/30 hover:scale-[1.02] transition-all duration-300 flex items-center justify-between group">
         <div class="space-y-1">
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Active Countdowns</span>
           <h3 id="stat-pending" class="text-2xl font-black font-display text-amber-400">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-amber-500/10 group-hover:text-amber-400 transition-all">
           <i class="fa-solid fa-stopwatch text-lg"></i>
         </div>
       </div>
 
-      <div class="bg-wa-cardbg border border-wa-border rounded-2xl p-5 shadow-sm hover:border-wa-green/20 transition-all flex items-center justify-between group">
+      <div class="glass-card border border-wa-border rounded-2xl p-5 shadow-sm hover:border-emerald-500/30 hover:scale-[1.02] transition-all duration-300 flex items-center justify-between group">
         <div class="space-y-1">
           <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Meeting Alerts</span>
           <h3 id="stat-alerts" class="text-2xl font-black font-display text-yellow-400">0</h3>
         </div>
-        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-yellow-500/10 group-hover:text-yellow-405 transition-colors">
+        <div class="w-11 h-11 rounded-xl bg-wa-bg flex items-center justify-center text-gray-455 group-hover:bg-yellow-500/10 group-hover:text-yellow-405 transition-all">
           <i class="fa-solid fa-calendar-check text-lg"></i>
         </div>
       </div>
@@ -137,20 +169,20 @@
       <div class="space-y-6 lg:col-span-1">
         
         <!-- CONNECT WHATSAPP -->
-        <section id="section-connect" class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-1.5 h-full bg-wa-green"></div>
+        <section id="section-connect" class="glass-card border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
           <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-qrcode text-wa-green"></i> 1. Link WhatsApp (Knight MD style)
+            <i class="fa-solid fa-qrcode text-emerald-400"></i> 1. Link WhatsApp Account
           </h2>
           
           <div id="connection-card-content" class="space-y-4">
             
             <!-- Tabs -->
             <div class="flex border-b border-wa-border" id="connect-tabs">
-              <button onclick="switchConnectTab('qr')" id="tab-btn-qr" class="flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all">
+              <button onclick="switchConnectTab('qr')" id="tab-btn-qr" class="flex-1 pb-2 text-xs font-bold border-b-2 border-emerald-500 text-emerald-400 transition-all">
                 <i class="fa-solid fa-qrcode mr-1"></i> Scan QR Code
               </button>
-              <button onclick="switchConnectTab('pair')" id="tab-btn-pair" class="flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all">
+              <button onclick="switchConnectTab('pair')" id="tab-btn-pair" class="flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-405 hover:text-white transition-all">
                 <i class="fa-solid fa-key mr-1"></i> Use Pairing Code
               </button>
             </div>
@@ -161,15 +193,15 @@
                 Open WhatsApp on your phone -> Tap **Settings** -> **Linked Devices** -> **Link a Device**, and scan this code:
               </p>
               <div class="flex justify-center my-4">
-                <div class="p-4 bg-white rounded-2xl shadow-xl relative inline-block">
+                <div class="p-4 bg-white rounded-2xl shadow-xl relative inline-block transition-transform duration-300 hover:scale-105">
                   <img id="qr-code-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80" alt="QR Code" class="w-40 h-40 object-contain blur-sm">
-                  <div id="qr-loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-2xl p-2 text-xs text-wa-green font-bold font-mono">
+                  <div id="qr-loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/85 rounded-2xl p-2 text-xs text-emerald-400 font-bold font-mono">
                     <i class="fa-solid fa-spinner animate-spin text-lg mb-2"></i>
                     <span>Generating QR...</span>
                   </div>
                 </div>
               </div>
-              <p class="text-[10px] text-gray-550">QR code refreshes automatically for security.</p>
+              <p class="text-[10px] text-gray-500">QR code refreshes automatically for security.</p>
             </div>
 
             <!-- Tab 2: Pairing Code -->
@@ -181,39 +213,39 @@
                 <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Phone Number (International)</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 text-xs">
-                    <i class="fa-solid fa-phone"></i>
+                    <i class="fa-solid fa-phone text-emerald-400"></i>
                   </span>
                   <input type="text" id="phone-input" value="254705760434" placeholder="e.g. 254705760434" 
-                    class="w-full bg-wa-bg border border-wa-border rounded-xl py-2.5 pl-9 pr-4 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-wa-green focus:ring-1 focus:ring-wa-green transition-all">
+                    class="w-full bg-wa-bg border border-wa-border rounded-xl py-2.5 pl-9 pr-4 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all">
                 </div>
               </div>
               
               <!-- Direct Get Pairing Code Button -->
-              <button id="get-code-btn" onclick="requestPairingCodeDirect()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+              <button id="get-code-btn" onclick="requestPairingCodeDirect()" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-neutral-955 font-bold text-xs py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
                 <span id="btn-spinner" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
                 <span id="btn-text"><i class="fa-solid fa-key mr-1"></i> Get Pairing Code</span>
               </button>
 
               <!-- Pairing Code Box -->
-              <div id="pairing-code-box" class="hidden space-y-3 bg-wa-bg p-4 rounded-xl border border-wa-border text-center">
+              <div id="pairing-code-box" class="hidden space-y-3 bg-wa-bg p-4 rounded-xl border border-wa-border text-center animate-fade-in">
                 <div class="flex items-center justify-between text-[10px]">
                   <span class="font-extrabold text-amber-400 flex items-center gap-1 uppercase tracking-wide">
-                    <span class="w-2 h-2 rounded-full bg-amber-505 live-pulse"></span> Code Generated
+                    <span class="w-2 h-2 rounded-full bg-amber-505 live-pulse"></span> Code Active
                   </span>
                   <span class="text-xs font-mono text-gray-400" id="pairing-phone-label"></span>
                 </div>
                 
                 <div class="flex items-center justify-center gap-2 my-2 bg-wa-cardbg border border-wa-border p-3 rounded-xl">
-                  <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-wa-green select-all">
+                  <div id="pairing-code-display" class="font-display font-black text-2xl tracking-widest text-emerald-400 select-all">
                     --------
                   </div>
-                  <button onclick="copyPairingCode()" class="p-2 bg-wa-green/10 hover:bg-wa-green text-wa-green hover:text-wa-chatbg rounded-lg text-xs transition-all border border-wa-green/20" title="Copy Code">
+                  <button onclick="copyPairingCode()" class="p-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-neutral-950 rounded-lg text-xs transition-all border border-emerald-500/20" title="Copy Code">
                     <i id="copy-btn-icon" class="fa-regular fa-copy"></i>
                   </button>
                 </div>
 
                 <div class="text-[10px] text-gray-450 text-left space-y-1.5 bg-wa-cardbg/50 p-2.5 rounded border border-wa-border leading-relaxed">
-                  <span class="font-bold text-white block mb-0.5"><i class="fa-solid fa-circle-info text-wa-green"></i> How to link on your phone:</span>
+                  <span class="font-bold text-white block mb-0.5"><i class="fa-solid fa-circle-info text-emerald-400"></i> How to link on your phone:</span>
                   1. Open <strong class="text-white">WhatsApp</strong> on your phone.<br>
                   2. Tap <strong class="text-white">Settings</strong> -> <strong class="text-white">Linked Devices</strong>.<br>
                   3. Tap <strong class="text-white">Link a Device</strong>.<br>
@@ -228,12 +260,12 @@
             </div>
 
             <!-- Connected State -->
-            <div id="conn-state-connected" class="hidden space-y-4 bg-wa-green/5 p-4 rounded-xl border border-wa-green/20">
+            <div id="conn-state-connected" class="hidden space-y-4 bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20">
               <div class="flex items-center justify-between">
-                <span class="text-[10px] font-extrabold text-wa-green flex items-center gap-1.5 uppercase tracking-wide">
-                  <span class="w-2.5 h-2.5 rounded-full bg-wa-green live-pulse"></span> Connected & Listening
+                <span class="text-[10px] font-extrabold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide font-display">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 live-pulse"></span> Connected & Listening
                 </span>
-                <i class="fa-solid fa-circle-check text-wa-green text-lg animate-bounce"></i>
+                <i class="fa-solid fa-circle-check text-emerald-400 text-lg animate-bounce"></i>
               </div>
               <p class="text-xs text-gray-300 leading-relaxed">
                 Ollie is successfully connected and responding on Oliver's behalf!
@@ -245,17 +277,17 @@
             
             <!-- Loading State -->
             <div id="conn-state-loading" class="hidden py-6 text-center space-y-3 bg-wa-bg rounded-xl border border-wa-border">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-wa-green border-t-transparent"></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-emerald-500 border-t-transparent"></div>
               <p class="text-xs text-gray-400" id="loading-status-text">Connecting to WhatsApp...</p>
             </div>
           </div>
         </section>
 
         <!-- POSTER & TRIGGER SYSTEM -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden space-y-4">
-          <div class="absolute top-0 left-0 w-1.5 h-full bg-wa-green"></div>
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden space-y-4">
+          <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
           <h2 class="text-sm font-extrabold font-display text-white flex items-center gap-2">
-            <i class="fa-solid fa-upload text-wa-green"></i> Media Poster Manager
+            <i class="fa-solid fa-upload text-emerald-400"></i> Media Poster Manager
           </h2>
           <p class="text-xs text-gray-400 leading-relaxed">
             Configure the brochure poster Ollie sends when trigger words like "poster" are requested by a contact.
@@ -265,24 +297,24 @@
             <div>
               <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Poster Image URL</label>
               <input type="text" id="setting-poster-url" placeholder="https://images.unsplash.com/photo..."
-                class="w-full bg-wa-bg border border-wa-border rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-wa-green transition-all">
+                class="w-full bg-wa-bg border border-wa-border rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all">
             </div>
             <div>
               <label class="block text-[10px] font-extrabold text-gray-400 mb-1 uppercase tracking-wider">Trigger Keyword</label>
               <input type="text" id="setting-poster-trigger" placeholder="e.g. poster"
-                class="w-full bg-wa-bg border border-wa-border rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-wa-green transition-all">
+                class="w-full bg-wa-bg border border-wa-border rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all">
             </div>
-            <button onclick="saveMediaSettings()" class="w-full bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold text-xs py-2 rounded-xl transition-all">
+            <button onclick="saveMediaSettings()" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-neutral-955 font-bold text-xs py-2.5 rounded-xl transition-all">
               Save Media Configuration
             </button>
           </div>
         </section>
 
         <!-- CUSTOM RULES PASTER -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden space-y-4">
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden space-y-4">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-purple-500"></div>
           <h2 class="text-sm font-extrabold font-display text-white flex items-center gap-2">
-            <i class="fa-solid fa-book-open text-purple-500"></i> Pasted Rules File
+            <i class="fa-solid fa-book-open text-purple-400"></i> Pasted Rules File
           </h2>
           <p class="text-xs text-gray-400 leading-relaxed">
             Paste your custom bot behavior guidelines or text rules files here. Ollie reads these rules strictly before drafting any AI reply.
@@ -290,19 +322,19 @@
 
           <div class="space-y-3">
             <textarea id="setting-bot-rules" rows="6" 
-              class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-[11px] font-mono text-wa-green focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
+              class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-[11px] font-mono text-emerald-450 focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
               placeholder="1. Speak like Oliver's assistant...\n2. Answer politely..."></textarea>
-            <button onclick="saveRulesFile()" class="w-full bg-purple-650 hover:bg-purple-550 text-white font-bold text-xs py-2 rounded-xl transition-all">
+            <button onclick="saveRulesFile()" class="w-full bg-gradient-to-r from-purple-550 to-purple-650 hover:from-purple-450 hover:to-purple-550 text-white font-bold text-xs py-2.5 rounded-xl transition-all">
               Save Rules File
             </button>
           </div>
         </section>
 
         <!-- GENERAL SETTINGS -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
           <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-blue-500"></i> General Settings
+            <i class="fa-solid fa-sliders text-blue-400"></i> General Settings
           </h2>
           
           <div class="space-y-4">
@@ -313,7 +345,7 @@
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="setting-bot-active" class="sr-only peer" onchange="updateSettingToggle('bot_active', this)">
-                <div class="w-10 h-5.5 bg-gray-750 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-wa-green"></div>
+                <div class="w-10 h-5.5 bg-gray-755 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
 
@@ -324,20 +356,20 @@
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="setting-groups" class="sr-only peer" onchange="updateSettingToggle('auto_reply_groups', this)">
-                <div class="w-10 h-5.5 bg-gray-750 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-wa-green"></div>
+                <div class="w-10 h-5.5 bg-gray-755 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
 
             <div class="space-y-1.5 pb-3 border-b border-wa-border">
               <div class="flex justify-between items-center text-xs">
                 <h4 class="font-bold text-white uppercase tracking-wider text-[10px]">Reply Delay</h4>
-                <span id="delay-badge" class="font-bold text-wa-green bg-wa-green/10 px-2 py-0.5 rounded">3 mins</span>
+                <span id="delay-badge" class="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">3 mins</span>
               </div>
               <div class="flex items-center gap-2">
                 <input type="number" id="setting-delay" min="0.1" step="0.1" value="3" 
-                  class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                  class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                 <span class="text-xs text-gray-400">minutes</span>
-                <button onclick="saveDelaySetting()" class="bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 font-bold px-3 py-1.5 rounded-xl transition-all text-xs">
+                <button onclick="saveDelaySetting()" class="bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/20 text-emerald-400 font-bold px-3 py-1.5 rounded-xl transition-all text-xs">
                   Save
                 </button>
               </div>
@@ -346,9 +378,9 @@
             <div class="space-y-1.5">
               <h4 class="text-xs font-bold text-white uppercase tracking-wider text-[10px]">AI Personality Prompt</h4>
               <textarea id="setting-ai-prompt" rows="3" 
-                class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
+                class="w-full bg-wa-bg border border-wa-border rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500 resize-none custom-scrollbar"
                 placeholder="Example: You are friendly, casual, and use emojis..."></textarea>
-              <button onclick="saveAiPrompt()" class="w-full bg-purple-600 hover:bg-purple-555 text-white font-bold text-xs py-2 rounded-xl transition-all shadow-md">
+              <button onclick="saveAiPrompt()" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-neutral-955 font-bold text-xs py-2 rounded-xl transition-all shadow-md">
                 Save Personality Prompt
               </button>
             </div>
@@ -356,10 +388,10 @@
         </section>
 
         <!-- BLOCKED CONTACTS -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md relative overflow-hidden">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
           <h2 class="text-sm font-extrabold font-display text-white mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-ban text-red-500"></i> Blocked Contacts
+            <i class="fa-solid fa-ban text-red-400"></i> Blocked Contacts
           </h2>
           
           <div class="space-y-4">
@@ -376,7 +408,7 @@
                   <input type="checkbox" id="block-isgroup" class="rounded bg-wa-cardbg border-wa-border text-red-500 focus:ring-0">
                   Is Group?
                 </label>
-                <button type="submit" class="bg-red-500 hover:bg-red-650 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
                   <i class="fa-solid fa-plus"></i> Block
                 </button>
               </div>
@@ -396,17 +428,17 @@
       <div class="lg:col-span-2 space-y-6">
 
         <!-- OLLIE AI BRAIN COGNITION CONSOLE -->
-        <section class="bg-wa-cardbg border border-wa-green/30 rounded-2xl p-6 shadow-xl relative overflow-hidden neon-glow-active">
-          <div class="absolute top-0 right-0 w-36 h-36 bg-wa-green/5 rounded-full blur-3xl"></div>
+        <section class="glass-card border border-wa-green/35 rounded-2xl p-6 shadow-xl relative overflow-hidden neon-glow-emerald">
+          <div class="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl"></div>
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-extrabold text-wa-green flex items-center gap-2 uppercase tracking-wider font-mono">
-              <span class="w-2.5 h-2.5 bg-wa-green rounded-full animate-ping"></span>
+            <h3 class="text-sm font-extrabold text-emerald-400 flex items-center gap-2 uppercase tracking-wider font-mono">
+              <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
               Ollie Cognitive Brain Status
             </h3>
             <div class="text-[9px] text-gray-505 font-mono">Real-time LLama-3.3 thought logs</div>
           </div>
 
-          <div id="ollie-brain-logs" class="bg-wa-bg rounded-xl p-4 border border-wa-border font-mono text-[11px] text-wa-green/90 h-40 overflow-y-auto custom-scrollbar space-y-1.5 shadow-inner">
+          <div id="ollie-brain-logs" class="bg-wa-bg/60 rounded-xl p-4 border border-wa-border font-mono text-[11px] text-emerald-400 h-40 overflow-y-auto custom-scrollbar space-y-1.5 shadow-inner">
             <div class="flex flex-col items-center justify-center h-full text-gray-600 space-y-1 text-center font-sans">
               <i class="fa-solid fa-terminal text-lg opacity-40"></i>
               <p class="text-[10px]">Ollie Brain is currently in deep hibernation. Waiting for inbound WhatsApp traffic...</p>
@@ -425,18 +457,18 @@
         </div>
 
         <!-- MESSAGES -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md flex flex-col min-h-[500px]">
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md flex flex-col min-h-[500px]">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-wa-border mb-4">
             <div>
               <h2 class="text-sm font-extrabold font-display text-white flex items-center gap-2">
-                <i class="fa-solid fa-message text-wa-green"></i> Live Chat Log
+                <i class="fa-solid fa-message text-emerald-400"></i> Live Chat Log
               </h2>
               <p class="text-xs text-gray-400 font-medium">Real-time incoming messages and bot auto-replies</p>
             </div>
             
             <div class="flex items-center gap-2 max-w-xs w-full">
               <div class="relative w-full">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-550 text-xs">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-505 text-xs">
                   <i class="fa-solid fa-magnifying-glass"></i>
                 </span>
                 <input type="text" id="message-search" oninput="filterMessages()" placeholder="Search sender or text..." 
@@ -446,7 +478,7 @@
           </div>
 
           <div id="messages-log" class="flex-1 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-            <div class="flex flex-col items-center justify-center py-20 text-gray-550 space-y-2">
+            <div class="flex flex-col items-center justify-center py-20 text-gray-555 space-y-2">
               <i class="fa-solid fa-comments-dollar text-3xl"></i>
               <p class="text-xs">No messages in database. Wait for an incoming chat!</p>
             </div>
@@ -463,7 +495,7 @@
               <div class="relative md:col-span-2 flex gap-2">
                 <input type="text" id="manual-text" placeholder="Type a manual message to send now..."
                   class="w-full bg-wa-bg border border-wa-border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-550 focus:outline-none focus:border-wa-green">
-                <button onclick="sendManualMessage()" class="bg-wa-green hover:bg-wa-green/90 text-wa-chatbg font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shrink-0">
+                <button onclick="sendManualMessage()" class="bg-emerald-500 hover:bg-emerald-400 text-neutral-955 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 hover:scale-102">
                   <i class="fa-solid fa-paper-plane"></i> Send
                 </button>
               </div>
@@ -472,7 +504,7 @@
         </section>
 
         <!-- MEETING ALERTS -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md">
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md">
           <div class="flex items-center justify-between pb-4 border-b border-wa-border mb-4">
             <div>
               <h2 class="text-sm font-extrabold font-display text-yellow-400 flex items-center gap-2">
@@ -493,11 +525,11 @@
           </div>
         </section>
 
-        <!-- DEBUGGING & LIVE SYSTEM LOGS TERMINAL (Collapsible) -->
-        <section class="bg-wa-cardbg border border-wa-border rounded-2xl p-6 shadow-md overflow-hidden">
+        <!-- DEBUGGING & LIVE SYSTEM LOGS TERMINAL -->
+        <section class="glass-card border border-wa-border rounded-2xl p-6 shadow-md overflow-hidden neon-glow-purple">
           <button onclick="toggleLogsTerminal()" class="w-full flex items-center justify-between text-left focus:outline-none">
-            <div class="flex items-center gap-2 text-xs font-bold text-gray-450 uppercase tracking-wider">
-              <i class="fa-solid fa-bug text-red-500"></i> Live System Logs (Render Console Debug)
+            <div class="flex items-center gap-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
+              <i class="fa-solid fa-bug text-purple-500"></i> Live System Logs (Render Console Debug)
             </div>
             <i id="logs-arrow-icon" class="fa-solid fa-chevron-down text-gray-500 transition-transform"></i>
           </button>
@@ -507,7 +539,6 @@
               If the pairing code isn't prompting your phone, this terminal will show the exact error message from WhatsApp (e.g., rate limits, invalid signatures, or database errors).
             </p>
             <div id="logs-terminal-screen" class="bg-black rounded-xl p-4 border border-wa-border font-mono text-[11px] text-red-400 h-60 overflow-y-auto custom-scrollbar space-y-1 shadow-inner">
-              <!-- Render live console logs dynamically -->
               <div class="text-gray-500 text-center py-24">No system logs collected yet. Generating...</div>
             </div>
             <div class="flex justify-between items-center text-[10px] text-gray-500">
@@ -523,11 +554,11 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-wa-cardbg border-t border-wa-border py-4 px-6 text-center text-xs text-gray-505 mt-12">
+  <footer class="bg-wa-cardbg border-t border-wa-border py-4 px-6 text-center text-xs text-gray-500 mt-12">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
       <p>&copy; 2026 Ollie AI Auto-Reply Bot. Created for Oliver. Powered by Groq Llama-3.3-70b & Supabase.</p>
       <p class="flex items-center gap-2">
-        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-wa-green"></span> Dashboard Live</span>
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Dashboard Live</span>
         <span>|</span>
         <span class="text-gray-400 font-medium">Node.js Server</span>
       </p>
@@ -543,6 +574,9 @@
     
     let pollIntervalId = null;
     let logsIntervalId = null;
+    
+    // Client-side pairing state lock
+    let activePairingPhone = null;
 
     // Start Polling Status and Logs
     function startPolling() {
@@ -608,12 +642,12 @@
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       
-      let bgClass = 'bg-wa-cardbg border-blue-500';
-      let iconClass = 'fa-circle-info text-blue-400';
+      let bgClass = 'bg-wa-cardbg border-emerald-500';
+      let iconClass = 'fa-circle-info text-emerald-400';
       
       if (type === 'success') {
-        bgClass = 'bg-wa-cardbg border-wa-green';
-        iconClass = 'fa-circle-check text-wa-green';
+        bgClass = 'bg-wa-cardbg border-emerald-500';
+        iconClass = 'fa-circle-check text-emerald-400';
       } else if (type === 'warning') {
         bgClass = 'bg-wa-cardbg border-yellow-500';
         iconClass = 'fa-triangle-exclamation text-yellow-400';
@@ -622,7 +656,7 @@
         iconClass = 'fa-circle-xmark text-red-400';
       }
 
-      toast.className = `w-full p-4 rounded-xl border bg-opacity-95 backdrop-blur-md shadow-2xl flex items-start gap-3 pointer-events-auto transition-all duration-300 transform translate-y-0`;
+      toast.className = `w-full p-4 rounded-xl border bg-opacity-95 backdrop-blur-md shadow-2xl flex items-start gap-3 pointer-events-auto toast-enter`;
       toast.innerHTML = `
         <div class="mt-0.5">
           <i class="fa-solid ${iconClass} text-lg"></i>
@@ -640,13 +674,20 @@
       setTimeout(() => toast.remove(), 6000);
     }
 
-    // Direct HTTP Connect Request
+    // Direct HTTP Connect Request (Guaranteed single generation)
     async function requestPairingCodeDirect() {
       const phoneInput = document.getElementById('phone-input');
       const phoneNumber = phoneInput.value.trim();
       
       if (!phoneNumber) {
         showToast('Input Required', 'Please enter a valid phone number with country code.', 'error');
+        return;
+      }
+
+      // If we already generated code for this number, don't trigger again to avoid 429 rate limits!
+      if (activePairingPhone === phoneNumber) {
+        showToast('Code Active', 'The pairing code is already active. Check below.', 'info');
+        document.getElementById('pairing-code-box').classList.remove('hidden');
         return;
       }
 
@@ -668,6 +709,7 @@
         if (data.success && data.code) {
           showToast('Pairing Code Ready', 'Enter it in your phone.', 'success');
           
+          activePairingPhone = phoneNumber; // Lock active state
           document.getElementById('pairing-code-box').classList.remove('hidden');
           document.getElementById('pairing-code-display').innerText = data.code;
           document.getElementById('pairing-phone-label').innerText = phoneNumber;
@@ -697,10 +739,11 @@
         cardPairing.classList.add('hidden');
         cardLoading.classList.add('hidden');
         
-        headerStatus.className = "flex items-center gap-2 bg-wa-green/10 border border-wa-green/20 px-3.5 py-1.5 rounded-full text-sm text-wa-green";
-        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-wa-green live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connected</span>`;
+        headerStatus.className = "flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1.5 rounded-full text-sm text-emerald-450 shadow-inner font-bold font-display";
+        headerStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 live-pulse"></span><span class="font-bold text-xs uppercase tracking-wider">Connected</span>`;
         
         cardConnected.classList.remove('hidden');
+        activePairingPhone = null; // Reset lock once connected
       } else {
         cardConnected.classList.add('hidden');
         
@@ -713,6 +756,7 @@
             document.getElementById('pairing-code-box').classList.remove('hidden');
             document.getElementById('pairing-code-display').innerText = data.pairingCode;
             document.getElementById('pairing-phone-label').innerText = data.phoneNumber || '';
+            activePairingPhone = data.phoneNumber;
           } else if (data.qrCode) {
             switchConnectTab('qr');
             const qrImg = document.getElementById('qr-code-img');
@@ -751,6 +795,7 @@
         if (data.success) {
           showToast('Disconnected', 'WhatsApp session logged out.', 'success');
           document.getElementById('pairing-code-box').classList.add('hidden');
+          activePairingPhone = null;
           fetchAllData();
         }
       } catch (err) {
@@ -765,6 +810,7 @@
         if (data.success) {
           showToast('Reset Complete', 'Connection reset successfully.', 'success');
           document.getElementById('pairing-code-box').classList.add('hidden');
+          activePairingPhone = null;
           fetchStatus();
         }
       } catch (err) {
@@ -799,13 +845,13 @@
       if (tab === 'qr') {
         tabQr.classList.remove('hidden');
         tabPair.classList.add('hidden');
-        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
-        btnPin.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
+        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-emerald-500 text-emerald-400 transition-all";
+        btnPin.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-405 hover:text-white transition-all";
       } else {
         tabQr.classList.add('hidden');
         tabPair.classList.remove('hidden');
-        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-all";
-        btnPin.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-wa-green text-wa-green transition-all";
+        btnQr.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-transparent text-gray-405 hover:text-white transition-all";
+        btnPin.className = "flex-1 pb-2 text-xs font-bold border-b-2 border-emerald-500 text-emerald-400 transition-all";
       }
     }
 
@@ -835,7 +881,7 @@
 
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-20 text-gray-550 space-y-2">
+          <div class="flex flex-col items-center justify-center py-20 text-gray-500 space-y-2">
             <i class="fa-solid fa-magnifying-glass text-2xl opacity-40"></i>
             <p class="text-xs">No matching messages found.</p>
           </div>
@@ -846,7 +892,7 @@
       container.innerHTML = filtered.map(m => {
         let statusPill = '';
         if (m.reply_status === 'replied') {
-          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-500/10 text-green-450 border border-green-555/20"><i class="fa-solid fa-circle-check mr-0.5"></i> Replied</span>`;
+          statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-450 border border-emerald-555/20"><i class="fa-solid fa-circle-check mr-0.5"></i> Replied</span>`;
         } else if (m.reply_status === 'pending') {
           statusPill = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-455 border border-amber-555/20 animate-pulse"><i class="fa-solid fa-hourglass-start mr-0.5"></i> Pending</span>`;
         } else {
@@ -861,7 +907,7 @@
         const formattedTime = new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
         return `
-          <div class="bg-wa-bg p-4 rounded-xl border border-wa-border hover:border-wa-green/20 transition-all space-y-3 relative group">
+          <div class="bg-wa-bg p-4 rounded-xl border border-wa-border hover:border-emerald-500/20 hover:scale-[1.01] transition-all duration-300 space-y-3 relative group">
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <strong class="text-xs text-white">${escapeHtml(m.sender_name)}</strong>
@@ -871,7 +917,7 @@
                 ${vibeBadge}
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-[10px] text-gray-555">${formattedTime}</span>
+                <span class="text-[10px] text-gray-505">${formattedTime}</span>
                 ${statusPill}
               </div>
             </div>
@@ -882,18 +928,18 @@
 
             ${m.reply_text ? `
               <div class="flex flex-col items-end w-full pl-6">
-                <div class="bg-wa-darkteal/20 border border-wa-teal/30 p-3 rounded-xl max-w-xl text-xs text-gray-200">
-                  <div class="text-[9px] text-wa-green font-bold uppercase tracking-widest mb-1">Auto-Reply</div>
+                <div class="bg-emerald-950/10 border border-emerald-500/20 p-3 rounded-xl max-w-xl text-xs text-gray-200">
+                  <div class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mb-1">Auto-Reply</div>
                   ${escapeHtml(m.reply_text)}
                 </div>
               </div>
             ` : ''}
 
             <div class="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-              <button onclick="setQuickReplyTarget('${m.jid}')" title="Quick Reply" class="p-1 bg-wa-green/10 hover:bg-wa-green text-wa-green hover:text-wa-chatbg rounded-md text-xs transition-all border border-wa-green/20">
+              <button onclick="setQuickReplyTarget('${m.jid}')" title="Quick Reply" class="p-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-neutral-950 rounded-md text-xs transition-all border border-emerald-500/20">
                 <i class="fa-solid fa-reply"></i>
               </button>
-              <button onclick="quickBlockContact('${m.jid}', '${m.sender_name}', ${m.is_group})" title="Block Sender" class="p-1 bg-red-500/10 hover:bg-red-505 text-red-450 hover:text-white rounded-md text-xs transition-all border border-red-505/20">
+              <button onclick="quickBlockContact('${m.jid}', '${m.sender_name}', ${m.is_group})" title="Block Sender" class="p-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-md text-xs transition-all border border-red-505/20">
                 <i class="fa-solid fa-ban"></i>
               </button>
             </div>
@@ -952,7 +998,7 @@
 
       logs.forEach(log => {
         let tagColor = 'text-blue-400';
-        if (log.step === 'done') tagColor = 'text-wa-green';
+        if (log.step === 'done') tagColor = 'text-emerald-400';
         if (log.step === 'vibe_detecting') tagColor = 'text-purple-400';
         if (log.step === 'ai_generating') tagColor = 'text-pink-400';
         if (log.step === 'sending') tagColor = 'text-yellow-450';
@@ -1028,7 +1074,7 @@
       
       if (meetingAlerts.length === 0) {
         container.innerHTML = `
-          <div class="col-span-2 text-center py-10 text-gray-505 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
+          <div class="col-span-2 text-center py-10 text-gray-555 space-y-2 bg-wa-bg/20 rounded-xl border border-dashed border-wa-border">
             <i class="fa-regular fa-calendar text-3xl"></i>
             <p class="text-xs">No active meeting alerts. Safe scheduling!</p>
           </div>
@@ -1039,7 +1085,7 @@
       container.innerHTML = meetingAlerts.map(a => {
         const dateStr = new Date(a.created_at).toLocaleDateString();
         return `
-          <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-inner">
+          <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-inner hover:scale-[1.01] transition-transform duration-300">
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-yellow-400 flex items-center gap-1">
@@ -1113,7 +1159,6 @@
       }
     }
 
-    // Render Blocked Contacts
     function renderBlocked() {
       const container = document.getElementById('blocked-list');
       document.getElementById('blocked-count').innerText = blockedContacts.length;
@@ -1129,7 +1174,7 @@
         const jidShort = c.jid.split('@')[0];
         const isGroupBadge = c.is_group ? `<span class="bg-blue-500/10 text-blue-400 text-[9px] px-1 rounded">Group</span>` : '';
         return `
-          <div class="bg-wa-bg px-3 py-2 rounded-xl border border-wa-border flex items-center justify-between gap-2">
+          <div class="bg-wa-bg px-3 py-2 rounded-xl border border-wa-border flex items-center justify-between gap-2 hover:scale-[1.01] transition-transform duration-300">
             <div class="flex flex-col min-w-0">
               <span class="text-xs text-white font-semibold truncate">${escapeHtml(c.name)}</span>
               <span class="text-[10px] text-gray-550 font-mono truncate">${jidShort} ${isGroupBadge}</span>
@@ -1350,7 +1395,7 @@
         const percent = Math.min(100, Math.round(((t.totalDelay - t.timeLeft) / t.totalDelay) * 100));
         
         return `
-          <div class="bg-wa-cardbg border border-amber-500/20 rounded-xl p-3.5 flex flex-col gap-2 shadow-inner">
+          <div class="bg-wa-cardbg border border-amber-500/20 rounded-xl p-3.5 flex flex-col gap-2 shadow-inner hover:scale-[1.01] transition-transform duration-300">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-white truncate max-w-[150px]">
                 <i class="fa-solid fa-hourglass-half text-amber-400 animate-spin-slow"></i> ${escapeHtml(t.senderName)}
